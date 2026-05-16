@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\CRM\Customer;
+use App\Models\Storefront\PaymentMethod;
 use App\Services\Payments\PaymentGatewayFactory;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
@@ -28,7 +29,7 @@ class CheckoutController extends Controller
             'shipping_address.postcode'   => 'required|string|max:10',
             'shipping_address.country'    => 'nullable|string|size:2',
             'billing_address'             => 'nullable|array',
-            'payment_method'              => 'required|in:cod,bank_transfer,stripe,paypal,billplz,toyyibpay',
+            'payment_method'              => 'required|string|max:30',
             'guest_email'                 => 'nullable|email',
             'guest_name'                  => 'nullable|string',
             'guest_password'              => 'nullable|string|min:8',
@@ -41,6 +42,11 @@ class CheckoutController extends Controller
 
         if ($cart->items()->count() === 0) {
             return response()->json(['error' => 'Cart is empty.'], 422);
+        }
+
+        $method = PaymentMethod::where('code', $data['payment_method'])->where('enabled', true)->first();
+        if (!$method) {
+            return response()->json(['error' => 'Selected payment method is not enabled.'], 422);
         }
 
         // Guest checkout: auto-create customer if email/password provided

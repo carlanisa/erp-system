@@ -11,19 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class PayPalDriver implements PaymentGateway
 {
-    use MarksOrderPaid;
+    use MarksOrderPaid, ReadsDriverConfig;
 
     private function base(): string
     {
-        return config('services.paypal.mode') === 'live'
+        return $this->cfg('paypal', 'mode', 'services.paypal.mode', 'sandbox') === 'live'
             ? 'https://api-m.paypal.com'
             : 'https://api-m.sandbox.paypal.com';
     }
 
     private function token(): ?string
     {
-        $id = config('services.paypal.client_id');
-        $secret = config('services.paypal.client_secret');
+        $id = $this->cfg('paypal', 'client_id', 'services.paypal.client_id');
+        $secret = $this->cfg('paypal', 'client_secret', 'services.paypal.client_secret');
         if (!$id || !$secret) return null;
         $r = Http::asForm()->withBasicAuth($id, $secret)
             ->post($this->base() . '/v1/oauth2/token', ['grant_type' => 'client_credentials']);

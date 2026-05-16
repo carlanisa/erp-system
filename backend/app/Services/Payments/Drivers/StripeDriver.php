@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class StripeDriver implements PaymentGateway
 {
-    use MarksOrderPaid;
+    use MarksOrderPaid, ReadsDriverConfig;
 
     public function createIntent(SalesOrder $order): array
     {
-        $secret = config('services.stripe.secret');
+        $secret = $this->cfg('stripe', 'secret', 'services.stripe.secret');
         if (!$secret) {
             return ['error' => 'Stripe is not configured.', 'driver' => 'stripe'];
         }
