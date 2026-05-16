@@ -2,12 +2,12 @@
 
 namespace App\Services\Payments\Drivers;
 
-use App\Models\Sales\SalesOrder;
+use App\Models\Sales\SaleInvoice;
 use App\Models\Storefront\PaymentTransaction;
 
 trait MarksOrderPaid
 {
-    protected function markPaid(SalesOrder $order, string $driver, string $intentId, float $amount, array $rawResponse = []): PaymentTransaction
+    protected function markPaid(SaleInvoice $order, string $driver, string $intentId, float $amount, array $rawResponse = []): PaymentTransaction
     {
         $tx = PaymentTransaction::updateOrCreate(
             ['order_id' => $order->id, 'driver' => $driver, 'intent_id' => $intentId],
@@ -23,6 +23,8 @@ trait MarksOrderPaid
             'storefront_status' => 'paid',
             'payment_reference' => $intentId,
             'payment_method'    => $driver,
+            'paid_amount'       => $amount,
+            'payment_date'      => now()->toDateString(),
         ]);
         return $tx;
     }

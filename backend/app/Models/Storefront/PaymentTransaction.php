@@ -2,7 +2,7 @@
 
 namespace App\Models\Storefront;
 
-use App\Models\Sales\SalesOrder;
+use App\Models\Sales\SaleInvoice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,6 +24,6 @@ class PaymentTransaction extends Model
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(SalesOrder::class, 'order_id');
+        return $this->belongsTo(SaleInvoice::class, 'order_id');
     }
 }

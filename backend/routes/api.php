@@ -457,8 +457,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Storefront admin (ERP staff manages the website) ─────
     Route::prefix('admin/storefront')->group(function () {
-        Route::get('orders', [\App\Http\Controllers\Storefront\Admin\StorefrontOrdersController::class, 'index']);
-        Route::get('orders/{id}', [\App\Http\Controllers\Storefront\Admin\StorefrontOrdersController::class, 'show']);
+        // Storefront orders are surfaced via /sales/orders (sale_invoices with
+        // source='online') — no separate admin/storefront/orders route.
         Route::get('shipping-zones', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'index']);
         Route::get('shipping-zones/{id}', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'show']);
         Route::post('shipping-zones', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'store']);
