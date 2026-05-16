@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {
-  Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package,
+  Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
 } from 'lucide-react'
 
 const MODULES = [
@@ -50,6 +50,33 @@ const MODULES = [
     bg:    'bg-violet-50',
     border:'border-violet-100',
     desc:  'Customer conversations with the shopping concierge — see what they asked for',
+  },
+  {
+    title: 'Bundles',
+    href:  '/storefront/bundles',
+    icon:  Gift,
+    color: 'text-pink-600',
+    bg:    'bg-pink-50',
+    border:'border-pink-100',
+    desc:  'Pre-set combos (Baju Kurung + Hijab + Brooch) with bundle pricing',
+  },
+  {
+    title: 'Cross-sell Rules',
+    href:  '/storefront/cross-sell',
+    icon:  Layers,
+    color: 'text-teal-600',
+    bg:    'bg-teal-50',
+    border:'border-teal-100',
+    desc:  'When customer adds Baju Kurung → suggest Hijabs / Brooches automatically',
+  },
+  {
+    title: 'Smart Vouchers',
+    href:  '/storefront/vouchers',
+    icon:  Sparkles,
+    color: 'text-orange-600',
+    bg:    'bg-orange-50',
+    border:'border-orange-100',
+    desc:  'Behavior-triggered: welcome ship, idle 5% off, exit-intent 10% off, free-ship nudge',
   },
   {
     title: 'Publish a Product',

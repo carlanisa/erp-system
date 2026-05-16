@@ -7,6 +7,7 @@ import { useCartStore } from '@/stores/cart-store'
 import { useCustomerAuthStore } from '@/stores/customer-auth-store'
 import { Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { BundleCard } from '@/components/storefront/BundleCard'
 
 type Variant = { id: number; sku?: string; color?: string; size?: string; price?: number; sale_price?: number; stock?: number }
 type Product = {
@@ -211,6 +212,8 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               <p className="whitespace-pre-line">{product.description}</p>
             </div>
           )}
+
+          <BundleCard productId={product.id} />
         </div>
       </div>
 
