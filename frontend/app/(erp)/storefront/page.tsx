@@ -3,9 +3,28 @@
 import Link from 'next/link'
 import {
   Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
+  Palette, LayoutGrid,
 } from 'lucide-react'
 
 const MODULES = [
+  {
+    title: 'Theme Customizer',
+    href:  '/storefront/theme',
+    icon:  Palette,
+    color: 'text-rose-600',
+    bg:    'bg-rose-50',
+    border:'border-rose-100',
+    desc:  'Colors, fonts, logo, contact + social — your brand identity (Shopify-style)',
+  },
+  {
+    title: 'Homepage Sections',
+    href:  '/storefront/sections',
+    icon:  LayoutGrid,
+    color: 'text-violet-600',
+    bg:    'bg-violet-50',
+    border:'border-violet-100',
+    desc:  'Drag-and-drop sections: hero, categories, featured, testimonials, newsletter, Instagram',
+  },
   {
     title: 'Website Orders',
     href:  '/sales/orders?source=online',

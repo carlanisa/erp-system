@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             StorefrontShippingSeeder::class,
             StorefrontGrowthSeeder::class,
+            StorefrontThemeSeeder::class,
         ]);
     }
 }

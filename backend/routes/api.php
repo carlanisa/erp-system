@@ -498,6 +498,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('voucher-rules/{id}', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'update']);
         Route::delete('voucher-rules/{id}', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'destroy']);
         Route::get('voucher-offers', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'issuedOffers']);
+
+        // Theme + sections + announcement bars
+        Route::get('theme-settings', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'settings']);
+        Route::put('theme-settings', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'updateSettings']);
+        Route::post('theme-settings/preset', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'applyPreset']);
+        Route::get('sections', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'sections']);
+        Route::post('sections', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'storeSection']);
+        Route::put('sections/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'updateSection']);
+        Route::delete('sections/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'destroySection']);
+        Route::post('sections/reorder', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'reorderSections']);
+        Route::get('announcement-bars', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'bars']);
+        Route::post('announcement-bars', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'storeBar']);
+        Route::put('announcement-bars/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'updateBar']);
+        Route::delete('announcement-bars/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'destroyBar']);
     });
 });
 
@@ -531,6 +545,9 @@ Route::prefix('storefront')->group(function () {
     Route::get('bundles/{slug}', [\App\Http\Controllers\Storefront\BundleController::class, 'show']);
     Route::get('bundles/for-product/{productId}', [\App\Http\Controllers\Storefront\BundleController::class, 'forProduct']);
     Route::post('bundles/{id}/add-to-cart', [\App\Http\Controllers\Storefront\BundleController::class, 'addToCart']);
+
+    // Theme + dynamic homepage sections
+    Route::get('theme', [\App\Http\Controllers\Storefront\ThemeController::class, 'theme']);
 
     Route::get('suggestions/cart', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forCart']);
     Route::get('suggestions/product/{productId}', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forProduct']);
