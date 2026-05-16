@@ -478,6 +478,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('payment-methods', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'store']);
         Route::put('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'update']);
         Route::delete('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'destroy']);
+
+        // Bundles
+        Route::get('bundles', [\App\Http\Controllers\Storefront\Admin\BundlesController::class, 'index']);
+        Route::get('bundles/{id}', [\App\Http\Controllers\Storefront\Admin\BundlesController::class, 'show']);
+        Route::post('bundles', [\App\Http\Controllers\Storefront\Admin\BundlesController::class, 'store']);
+        Route::put('bundles/{id}', [\App\Http\Controllers\Storefront\Admin\BundlesController::class, 'update']);
+        Route::delete('bundles/{id}', [\App\Http\Controllers\Storefront\Admin\BundlesController::class, 'destroy']);
+
+        // Cross-sell rules
+        Route::get('cross-sell-rules', [\App\Http\Controllers\Storefront\Admin\CrossSellRulesController::class, 'index']);
+        Route::post('cross-sell-rules', [\App\Http\Controllers\Storefront\Admin\CrossSellRulesController::class, 'store']);
+        Route::put('cross-sell-rules/{id}', [\App\Http\Controllers\Storefront\Admin\CrossSellRulesController::class, 'update']);
+        Route::delete('cross-sell-rules/{id}', [\App\Http\Controllers\Storefront\Admin\CrossSellRulesController::class, 'destroy']);
+
+        // Voucher rules + issued offers log
+        Route::get('voucher-rules', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'index']);
+        Route::post('voucher-rules', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'store']);
+        Route::put('voucher-rules/{id}', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'update']);
+        Route::delete('voucher-rules/{id}', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'destroy']);
+        Route::get('voucher-offers', [\App\Http\Controllers\Storefront\Admin\VoucherRulesController::class, 'issuedOffers']);
     });
 });
 
@@ -505,6 +525,17 @@ Route::prefix('storefront')->group(function () {
             ->orderBy('sort_order')
             ->get(['code', 'driver', 'label']);
     });
+
+    // Bundles + cross-sell + behavior
+    Route::get('bundles', [\App\Http\Controllers\Storefront\BundleController::class, 'index']);
+    Route::get('bundles/{slug}', [\App\Http\Controllers\Storefront\BundleController::class, 'show']);
+    Route::get('bundles/for-product/{productId}', [\App\Http\Controllers\Storefront\BundleController::class, 'forProduct']);
+    Route::post('bundles/{id}/add-to-cart', [\App\Http\Controllers\Storefront\BundleController::class, 'addToCart']);
+
+    Route::get('suggestions/cart', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forCart']);
+    Route::get('suggestions/product/{productId}', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forProduct']);
+    Route::post('signals', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'signal']);
+    Route::get('vouchers/live', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'liveVouchers']);
 
     Route::post('auth/register', [\App\Http\Controllers\Storefront\AuthController::class, 'register']);
     Route::post('auth/login', [\App\Http\Controllers\Storefront\AuthController::class, 'login']);

@@ -57,11 +57,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   addItem: async (productId, variantId, qty = 1) => {
+    const before = get().cart.items.length
     const { data } = await storefrontApi.post('/cart/items', {
       product_id: productId, variant_id: variantId, qty,
     })
     if (data.session_token) setCartToken(data.session_token)
     set({ cart: data })
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('storefront:item-added', {
+        detail: { firstInSession: before === 0, productId, qty },
+      }))
+      window.dispatchEvent(new CustomEvent('storefront:cart-subtotal', {
+        detail: { subtotal: data.subtotal },
+      }))
+    }
   },
 
   updateQty: async (itemId, qty) => {

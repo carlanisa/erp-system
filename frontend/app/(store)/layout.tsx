@@ -1,6 +1,7 @@
 import { StoreHeader } from '@/components/storefront/StoreHeader'
 import { StoreFooter } from '@/components/storefront/StoreFooter'
 import { StoreAiChat } from '@/components/storefront/StoreAiChat'
+import { BehaviorWatcher } from '@/components/storefront/BehaviorWatcher'
 
 export const metadata = {
   title: 'Modestwear — Baju Kurung, Hijab & More',
@@ -14,6 +15,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <main className="flex-1">{children}</main>
       <StoreFooter />
       <StoreAiChat />
+      <BehaviorWatcher />
     </div>
   )
 }

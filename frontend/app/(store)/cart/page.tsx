@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useCartStore } from '@/stores/cart-store'
 import { formatMYR, storefrontApi } from '@/lib/storefront-api'
 import { Trash2, X } from 'lucide-react'
+import { CartSuggestions } from '@/components/storefront/CartSuggestions'
 
 export default function CartPage() {
   const cart = useCartStore((s) => s.cart)
@@ -59,7 +60,8 @@ export default function CartPage() {
           ))}
         </div>
 
-        <aside className="h-fit rounded-xl border border-neutral-200 p-5">
+        <aside className="h-fit space-y-6">
+          <div className="rounded-xl border border-neutral-200 p-5">
           <h2 className="text-lg font-semibold">Order summary</h2>
           <CouponBox onChanged={() => refresh()} />
           <div className="mt-4 space-y-2 text-sm">
@@ -76,8 +78,11 @@ export default function CartPage() {
             Checkout
           </Link>
           <p className="mt-3 text-center text-xs text-neutral-500">Free shipping over RM150 (West Malaysia)</p>
+          </div>
         </aside>
       </div>
+
+      <CartSuggestions />
     </div>
   )
 }
