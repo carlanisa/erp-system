@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\CRM\Customer;
+use App\Services\Payments\PaymentGatewayFactory;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
 use Illuminate\Http\Request;
@@ -66,21 +67,16 @@ class CheckoutController extends Controller
 
         $order = $this->checkoutService->place($cart, $payload);
 
+        // Create payment intent immediately for online drivers
+        $gateway = PaymentGatewayFactory::make($order->payment_method ?? 'cod');
+        $intent  = $gateway->createIntent($order);
+
         return response()->json([
             'order_id'   => $order->id,
             'so_number'  => $order->so_number,
             'amount'     => $order->amount,
             'status'     => $order->storefront_status,
-            'next_step'  => $this->nextStepFor($order->payment_method),
+            'payment'    => $intent,
         ]);
-    }
-
-    private function nextStepFor(string $paymentMethod): array
-    {
-        return match ($paymentMethod) {
-            'cod'           => ['type' => 'thank_you', 'message' => 'Order placed. We will contact you to confirm Cash on Delivery.'],
-            'bank_transfer' => ['type' => 'thank_you', 'message' => 'Order placed. Bank transfer instructions will be emailed shortly.'],
-            default         => ['type' => 'thank_you', 'message' => 'Order placed.'],
-        };
     }
 }

@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useCartStore } from '@/stores/cart-store'
-import { formatMYR } from '@/lib/storefront-api'
-import { Trash2 } from 'lucide-react'
+import { formatMYR, storefrontApi } from '@/lib/storefront-api'
+import { Trash2, X } from 'lucide-react'
 
 export default function CartPage() {
   const cart = useCartStore((s) => s.cart)
@@ -60,6 +61,7 @@ export default function CartPage() {
 
         <aside className="h-fit rounded-xl border border-neutral-200 p-5">
           <h2 className="text-lg font-semibold">Order summary</h2>
+          <CouponBox onChanged={() => refresh()} />
           <div className="mt-4 space-y-2 text-sm">
             <Row label="Subtotal" value={formatMYR(cart.subtotal)} />
             <Row label="Discount" value={`− ${formatMYR(cart.discount_total)}`} muted={cart.discount_total === 0} />
@@ -76,6 +78,57 @@ export default function CartPage() {
           <p className="mt-3 text-center text-xs text-neutral-500">Free shipping over RM150 (West Malaysia)</p>
         </aside>
       </div>
+    </div>
+  )
+}
+
+function CouponBox({ onChanged }: { onChanged: () => void }) {
+  const cart = useCartStore((s) => s.cart)
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function apply() {
+    if (!code.trim()) return
+    setLoading(true)
+    try {
+      const { data } = await storefrontApi.post('/coupons/apply', { code: code.trim() })
+      toast.success(data.message || 'Coupon applied')
+      setCode('')
+      onChanged()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Coupon invalid')
+    } finally {
+      setLoading(false)
+    }
+  }
+  async function remove() {
+    setLoading(true)
+    try { await storefrontApi.post('/coupons/remove'); onChanged() } finally { setLoading(false) }
+  }
+
+  if (cart.coupon_code) {
+    return (
+      <div className="mt-4 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <span><span className="font-mono font-semibold">{cart.coupon_code}</span> applied</span>
+        <button onClick={remove} disabled={loading} className="text-emerald-700 hover:text-emerald-900"><X className="h-4 w-4" /></button>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-4 flex gap-2">
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value.toUpperCase())}
+        placeholder="Coupon code"
+        className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
+      />
+      <button
+        onClick={apply}
+        disabled={loading}
+        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-60"
+      >
+        Apply
+      </button>
     </div>
   )
 }

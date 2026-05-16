@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Models\Storefront\Cart;
+use App\Models\Storefront\Coupon;
 use App\Models\Storefront\ShippingZone;
 
 class ShippingCalculator
@@ -35,6 +36,14 @@ class ShippingCalculator
         if ($rate->free_over !== null && $cart->subtotal >= (float) $rate->free_over) {
             $amount = 0;
             $freeApplied = true;
+        }
+        // Free-shipping coupon overrides
+        if ($cart->coupon_id) {
+            $coupon = Coupon::find($cart->coupon_id);
+            if ($coupon && $coupon->type === 'free_shipping' && $coupon->isActiveNow()) {
+                $amount = 0;
+                $freeApplied = true;
+            }
         }
 
         return [

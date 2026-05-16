@@ -21,11 +21,22 @@ export default function CheckoutPage() {
     name: '', phone: '', line1: '', line2: '', city: '', state_code: 'MY-10', postcode: '',
     guest_email: '', guest_password: '',
   })
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank_transfer'>('cod')
+  const [paymentMethods, setPaymentMethods] = useState<{ code: string; label: string }[]>([
+    { code: 'cod', label: 'Cash on Delivery (COD)' },
+    { code: 'bank_transfer', label: 'Manual Bank Transfer' },
+  ])
+  const [paymentMethod, setPaymentMethod] = useState<string>('cod')
   const [shipping, setShipping] = useState<ShippingQuote | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { refresh().catch(() => {}); hydrate().catch(() => {}) }, [refresh, hydrate])
+  useEffect(() => {
+    refresh().catch(() => {})
+    hydrate().catch(() => {})
+    storefrontApi.get('/payment-methods')
+      .then(({ data }) => setPaymentMethods(data?.filter((m: any) => m.enabled).map((m: any) => ({ code: m.code, label: m.label })) ?? paymentMethods))
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   useEffect(() => {
     if (!form.state_code) return
     storefrontApi.post('/shipping/quote', { state_code: form.state_code })
@@ -63,7 +74,12 @@ export default function CheckoutPage() {
       }
       const { data } = await storefrontApi.post('/checkout', payload)
       toast.success('Order placed!')
-      router.push(`/order/confirmation?so=${encodeURIComponent(data.so_number)}`)
+      const redirect = data?.payment?.redirect_url
+      if (redirect) {
+        window.location.href = redirect
+      } else {
+        router.push(`/order/confirmation?so=${encodeURIComponent(data.so_number)}`)
+      }
     } catch (e: any) {
       toast.error(e?.response?.data?.error || 'Could not place order.')
     } finally {
@@ -115,11 +131,20 @@ export default function CheckoutPage() {
           <section className="rounded-xl border border-neutral-200 p-5">
             <h2 className="mb-3 text-lg font-semibold">Payment</h2>
             <div className="space-y-2">
-              <PaymentOption label="Cash on Delivery (COD)" sub="Pay when you receive your order" checked={paymentMethod === 'cod'} onSelect={() => setPaymentMethod('cod')} />
-              <PaymentOption label="Bank Transfer" sub="We'll email you bank details after placing the order" checked={paymentMethod === 'bank_transfer'} onSelect={() => setPaymentMethod('bank_transfer')} />
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-500">
-                Card payments (Stripe / PayPal / Billplz / ToyyibPay) coming soon.
-              </div>
+              {paymentMethods.map((m) => (
+                <PaymentOption
+                  key={m.code}
+                  label={m.label}
+                  sub={paymentSubFor(m.code)}
+                  checked={paymentMethod === m.code}
+                  onSelect={() => setPaymentMethod(m.code)}
+                />
+              ))}
+              {paymentMethods.length === 0 && (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-500">
+                  No payment methods configured yet. Ask the store admin to enable a payment method.
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -177,6 +202,17 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
       <span>{value}</span>
     </div>
   )
+}
+
+function paymentSubFor(code: string): string {
+  return {
+    cod: 'Pay when you receive your order',
+    bank_transfer: 'Bank details emailed after placing the order',
+    stripe: 'Pay securely with Visa, Mastercard, or Amex',
+    paypal: 'Pay with your PayPal balance or linked card',
+    billplz: 'FPX / Online banking (Maybank, CIMB, etc.)',
+    toyyibpay: 'FPX / Online banking via ToyyibPay',
+  }[code] ?? ''
 }
 
 function PaymentOption({ label, sub, checked, onSelect }: any) {

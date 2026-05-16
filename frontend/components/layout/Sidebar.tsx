@@ -84,7 +84,9 @@ const navItems: NavItem[] = [
     icon: Globe,
     children: [
       { label: 'Website Orders', href: '/storefront/orders', icon: ShoppingCart },
+      { label: 'Coupons',        href: '/storefront/coupons', icon: BookMarked },
       { label: 'Shipping Zones', href: '/storefront/shipping-zones', icon: Truck },
+      { label: 'Payment Methods',href: '/storefront/payment-methods', icon: FileText },
       { label: 'AI Transcripts', href: '/storefront/ai-transcripts', icon: MessageSquare },
     ],
   },

@@ -42,7 +42,8 @@ class AiChatController extends Controller
         return response()->json([
             'message'       => $result['message'],
             'quick_replies' => $result['quick_replies'],
-            'ui_actions'    => $result['ui_actions'],
+            'product_cards' => $result['product_cards'] ?? [],
+            'ui_actions'    => $result['ui_actions'] ?? [],
             'session_token' => $token,
         ]);
     }

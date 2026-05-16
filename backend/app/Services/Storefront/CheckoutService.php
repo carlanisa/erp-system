@@ -5,11 +5,16 @@ namespace App\Services\Storefront;
 use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SalesOrderLine;
 use App\Models\Storefront\Cart;
+use App\Models\Storefront\Coupon;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutService
 {
-    public function __construct(private CartService $cartService, private ShippingCalculator $shipping) {}
+    public function __construct(
+        private CartService $cartService,
+        private ShippingCalculator $shipping,
+        private CouponService $couponService,
+    ) {}
 
     /**
      * @param array $payload {
@@ -68,6 +73,19 @@ class CheckoutService
                     'amount'         => $item->line_total,
                     'sort_order'     => $i,
                 ]);
+            }
+
+            // Record coupon redemption (if any)
+            if ($cart->coupon_id) {
+                $coupon = Coupon::find($cart->coupon_id);
+                if ($coupon) {
+                    $this->couponService->recordRedemption(
+                        $coupon,
+                        $payload['customer_id'] ?? null,
+                        $so->id,
+                        $cart->discount_total,
+                    );
+                }
             }
 
             $cart->update(['status' => 'converted']);

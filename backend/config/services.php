@@ -40,4 +40,34 @@ return [
         'model'   => env('ANTHROPIC_MODEL', 'claude-sonnet-4-5-20250929'),
     ],
 
+    'stripe' => [
+        'secret'  => env('STRIPE_SECRET'),
+        'webhook' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'paypal' => [
+        'mode'          => env('PAYPAL_MODE', 'sandbox'),
+        'client_id'     => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+    ],
+
+    'billplz' => [
+        'key'           => env('BILLPLZ_KEY'),
+        'collection_id' => env('BILLPLZ_COLLECTION_ID'),
+        'sandbox'       => env('BILLPLZ_SANDBOX', true),
+        'x_signature'   => env('BILLPLZ_X_SIGNATURE'),
+    ],
+
+    'toyyibpay' => [
+        'secret'   => env('TOYYIBPAY_SECRET'),
+        'category' => env('TOYYIBPAY_CATEGORY'),
+        'sandbox'  => env('TOYYIBPAY_SANDBOX', true),
+    ],
+
+    'bank_transfer' => [
+        'bank_name'      => env('BANK_NAME', 'Maybank'),
+        'account_name'   => env('BANK_ACCOUNT_NAME', 'Modestwear Sdn Bhd'),
+        'account_number' => env('BANK_ACCOUNT_NUMBER', '5141-2345-6789'),
+    ],
+
 ];

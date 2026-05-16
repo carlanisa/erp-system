@@ -41,7 +41,11 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((o) => (
-            <div key={o.id} className="flex items-center justify-between rounded-xl border border-neutral-200 p-4">
+            <Link
+              key={o.id}
+              href={`/account/orders/${o.id}`}
+              className="flex items-center justify-between rounded-xl border border-neutral-200 p-4 hover:border-rose-500"
+            >
               <div>
                 <div className="font-mono text-sm font-semibold">{o.so_number}</div>
                 <div className="text-xs text-neutral-500">{o.date}</div>
@@ -50,7 +54,7 @@ export default function OrdersPage() {
                 <div className="font-semibold">{formatMYR(o.amount)}</div>
                 <div className="text-xs text-neutral-500">{o.storefront_status || '—'}</div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

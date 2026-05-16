@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { storefrontApi, formatMYR } from '@/lib/storefront-api'
 import { useCartStore } from '@/stores/cart-store'
+import { useCustomerAuthStore } from '@/stores/customer-auth-store'
+import { Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type Variant = { id: number; sku?: string; color?: string; size?: string; price?: number; sale_price?: number; stock?: number }
@@ -30,7 +32,23 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
   const [size, setSize] = useState<string | null>(null)
   const [showChart, setShowChart] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
+  const customer = useCustomerAuthStore((s) => s.customer)
   const router = useRouter()
+  const [wishlisted, setWishlisted] = useState(false)
+
+  async function toggleWishlist() {
+    if (!customer) { router.push('/account/login'); return }
+    if (!product) return
+    try {
+      if (wishlisted) {
+        await storefrontApi.delete(`/wishlist/${product.id}`)
+        setWishlisted(false); toast.success('Removed from wishlist')
+      } else {
+        await storefrontApi.post('/wishlist', { product_id: product.id })
+        setWishlisted(true); toast.success('Added to wishlist')
+      }
+    } catch { toast.error('Could not update wishlist') }
+  }
 
   useEffect(() => {
     storefrontApi.get(`/products/${params.slug}`)
@@ -177,6 +195,13 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
               className="rounded-full border border-neutral-300 px-6 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-100"
             >
               Buy now
+            </button>
+            <button
+              onClick={toggleWishlist}
+              aria-label="Wishlist"
+              className={`rounded-full border px-4 py-3 hover:bg-neutral-100 ${wishlisted ? 'border-rose-500 text-rose-500' : 'border-neutral-300 text-neutral-700'}`}
+            >
+              <Heart className={`h-5 w-5 ${wishlisted ? 'fill-rose-500' : ''}`} />
             </button>
           </div>
 
