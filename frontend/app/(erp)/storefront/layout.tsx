@@ -2,10 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ShoppingCart, BookMarked, Truck, CreditCard, MessageSquare, Globe } from 'lucide-react'
+import { BookMarked, Truck, CreditCard, MessageSquare, Globe } from 'lucide-react'
 
 const TABS = [
-  { label: 'Website Orders',  href: '/storefront/orders',          icon: ShoppingCart },
   { label: 'Coupons',         href: '/storefront/coupons',         icon: BookMarked },
   { label: 'Shipping Zones',  href: '/storefront/shipping-zones',  icon: Truck },
   { label: 'Payment Methods', href: '/storefront/payment-methods', icon: CreditCard },

@@ -79,7 +79,8 @@ class CheckoutController extends Controller
 
         return response()->json([
             'order_id'   => $order->id,
-            'so_number'  => $order->so_number,
+            'so_number'  => $order->si_number, // legacy alias for the frontend
+            'si_number'  => $order->si_number,
             'amount'     => $order->amount,
             'status'     => $order->storefront_status,
             'payment'    => $intent,
