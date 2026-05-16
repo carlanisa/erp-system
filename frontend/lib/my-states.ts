@@ -1,0 +1,18 @@
+export const MY_STATES: { code: string; name: string; zone: 'WM' | 'EM' }[] = [
+  { code: 'MY-01', name: 'Johor', zone: 'WM' },
+  { code: 'MY-02', name: 'Kedah', zone: 'WM' },
+  { code: 'MY-03', name: 'Kelantan', zone: 'WM' },
+  { code: 'MY-04', name: 'Melaka', zone: 'WM' },
+  { code: 'MY-05', name: 'Negeri Sembilan', zone: 'WM' },
+  { code: 'MY-06', name: 'Pahang', zone: 'WM' },
+  { code: 'MY-07', name: 'Pulau Pinang', zone: 'WM' },
+  { code: 'MY-08', name: 'Perak', zone: 'WM' },
+  { code: 'MY-09', name: 'Perlis', zone: 'WM' },
+  { code: 'MY-10', name: 'Selangor', zone: 'WM' },
+  { code: 'MY-11', name: 'Terengganu', zone: 'WM' },
+  { code: 'MY-12', name: 'Sabah', zone: 'EM' },
+  { code: 'MY-13', name: 'Sarawak', zone: 'EM' },
+  { code: 'MY-14', name: 'WP Kuala Lumpur', zone: 'WM' },
+  { code: 'MY-15', name: 'WP Labuan', zone: 'EM' },
+  { code: 'MY-16', name: 'WP Putrajaya', zone: 'WM' },
+]

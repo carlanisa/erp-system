@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof -nP -i:3000)",
+      "Bash(pkill -f \"expo start\")",
+      "Bash(pkill -f \"metro\")",
+      "Bash(sshpass -p 'Honda125@..' ssh -o StrictHostKeyChecking=no root@185.182.8.4 'cat /var/www/erp/frontend/next.config.js')"
+    ]
+  },
+  "additionalDirectories": [
+    "/Users/waqas/MOBILEAPP"
+  ]
+}

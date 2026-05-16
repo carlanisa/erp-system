@@ -1,0 +1,75 @@
+services:
+
+  # ─── Laravel API ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: erp_backend
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/storage:/var/www/html/storage
+    environment:
+      - APP_ENV=local
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - erp_network
+
+  # ─── Next.js Frontend ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: erp_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - erp_network
+
+  # ─── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: erp_system
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_secret
+    volumes:
+      - erp_postgres_data:/var/lib/postgresql/data
+    networks:
+      - erp_network
+
+  # ─── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: erp_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - erp_redis_data:/data
+    networks:
+      - erp_network
+
+volumes:
+  erp_postgres_data:
+  erp_redis_data:
+
+networks:
+  erp_network:
+    driver: bridge
