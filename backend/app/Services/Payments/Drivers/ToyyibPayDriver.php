@@ -11,19 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class ToyyibPayDriver implements PaymentGateway
 {
-    use MarksOrderPaid;
+    use MarksOrderPaid, ReadsDriverConfig;
 
     private function base(): string
     {
-        return config('services.toyyibpay.sandbox')
+        return $this->cfg('toyyibpay', 'sandbox', 'services.toyyibpay.sandbox', true)
             ? 'https://dev.toyyibpay.com'
             : 'https://toyyibpay.com';
     }
 
     public function createIntent(SalesOrder $order): array
     {
-        $secret = config('services.toyyibpay.secret');
-        $category = config('services.toyyibpay.category');
+        $secret = $this->cfg('toyyibpay', 'secret', 'services.toyyibpay.secret');
+        $category = $this->cfg('toyyibpay', 'category', 'services.toyyibpay.category');
         if (!$secret || !$category) return ['error' => 'ToyyibPay not configured.', 'driver' => 'toyyibpay'];
 
         $shipping = $order->shipping_address_json ?? [];

@@ -11,19 +11,19 @@ use Illuminate\Support\Facades\Log;
 
 class BillplzDriver implements PaymentGateway
 {
-    use MarksOrderPaid;
+    use MarksOrderPaid, ReadsDriverConfig;
 
     private function base(): string
     {
-        return config('services.billplz.sandbox')
+        return $this->cfg('billplz', 'sandbox', 'services.billplz.sandbox', true)
             ? 'https://www.billplz-sandbox.com/api/v3'
             : 'https://www.billplz.com/api/v3';
     }
 
     public function createIntent(SalesOrder $order): array
     {
-        $apiKey = config('services.billplz.key');
-        $collectionId = config('services.billplz.collection_id');
+        $apiKey = $this->cfg('billplz', 'key', 'services.billplz.key');
+        $collectionId = $this->cfg('billplz', 'collection_id', 'services.billplz.collection_id');
         if (!$apiKey || !$collectionId) return ['error' => 'Billplz not configured.', 'driver' => 'billplz'];
 
         $shipping = $order->shipping_address_json ?? [];

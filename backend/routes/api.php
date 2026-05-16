@@ -474,7 +474,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('coupons/{id}', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'destroy']);
 
         Route::get('payment-methods', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'index']);
+        Route::get('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'show']);
+        Route::post('payment-methods', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'store']);
         Route::put('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'update']);
+        Route::delete('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'destroy']);
     });
 });
 
@@ -508,6 +511,7 @@ Route::prefix('storefront')->group(function () {
 
     Route::post('checkout', [\App\Http\Controllers\Storefront\CheckoutController::class, 'placeOrder']);
     Route::post('checkout/pay/{orderId}/{driver}', [\App\Http\Controllers\Storefront\PaymentController::class, 'createIntent']);
+    Route::get('orders/{soNumber}/instructions', [\App\Http\Controllers\Storefront\PaymentController::class, 'instructions']);
 
     // Public webhooks
     Route::post('webhooks/{driver}', [\App\Http\Controllers\Storefront\PaymentController::class, 'webhook']);
