@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 type Conv = {
   id: number
@@ -26,6 +28,10 @@ export default function AiTranscriptsPage() {
 
   return (
     <div>
+      <Link href="/storefront" className="inline-flex items-center gap-1 mb-3 text-sm text-slate-500 hover:text-indigo-600">
+        <ArrowLeft className="h-3.5 w-3.5" /> Storefront
+      </Link>
+      <h1 className="text-2xl font-semibold text-slate-800 mb-4">AI Chat Transcripts</h1>
       <div className="grid gap-4 md:grid-cols-[360px,1fr]">
         <div className="rounded-lg border border-slate-200 bg-white">
           {loading ? <div className="p-4 text-slate-400">Loading…</div> : convs.length === 0 ? (

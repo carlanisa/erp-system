@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { COUNTRIES, COURIERS } from '@/lib/countries'
-import { Plus, Trash2, Pencil, X, Globe } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, Globe, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 type Rate = {
   id?: number
@@ -140,14 +141,18 @@ export default function ShippingZonesPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          Configure shipping per country with weight-based tiers. Add a courier + API key for live label generation later.
-        </p>
+      <Link href="/storefront" className="inline-flex items-center gap-1 mb-3 text-sm text-slate-500 hover:text-indigo-600">
+        <ArrowLeft className="h-3.5 w-3.5" /> Storefront
+      </Link>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-slate-800">Shipping Zones</h1>
         <button onClick={openNew} className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
           <Plus className="h-4 w-4" /> New zone
         </button>
       </div>
+      <p className="mb-6 text-sm text-slate-600">
+        Configure shipping per country with weight-based tiers. Add a courier + API key for live label generation later.
+      </p>
 
       {showForm && (
         <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
