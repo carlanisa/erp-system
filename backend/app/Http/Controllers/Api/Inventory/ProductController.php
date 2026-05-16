@@ -168,14 +168,22 @@ class ProductController extends Controller
     {
         $req = $update ? 'sometimes|' : '';
 
-        // Exclude soft-deleted products from SKU uniqueness check
-        $skuRule = Rule::unique('products', 'sku')->whereNull('deleted_at');
+        // SKU uniqueness check. Products table doesn't use soft-deletes (no deleted_at column),
+        // so the rule is a plain unique check — ignore the current product when updating.
+        $skuRule = Rule::unique('products', 'sku');
         if ($update && $request->route('product')) {
             $skuRule = $skuRule->ignore($request->route('product')->id);
         }
 
+        // SKU rule in array form (to embed Rule::unique). Each element must be a SEPARATE rule —
+        // do NOT concatenate "sometimes|" with another rule into one element, or Laravel will
+        // try to call a non-existent validator method named "sometimes|nullable".
+        $skuRules = $update
+            ? ['sometimes', 'nullable', 'string', $skuRule]
+            : ['nullable', 'string', $skuRule];
+
         return $request->validate([
-            'sku'             => [$req . 'nullable', 'string', $skuRule],
+            'sku'             => $skuRules,
             'barcode'         => 'nullable|string|max:60',
             'gtin'            => 'nullable|string|max:20',
             'mpn'             => 'nullable|string|max:60',
@@ -187,6 +195,7 @@ class ProductController extends Controller
             'description_short'=> 'nullable|string',
             'category'        => 'nullable|string|max:100',
             'department_id'   => 'nullable|exists:stock_departments,id',
+            'collection_id'   => 'nullable|exists:product_collections,id',
             'uom'             => 'nullable|string|max:20',
             'product_type'    => 'nullable|string|exists:product_types,key',
             'brand'           => 'nullable|string|max:100',
@@ -240,6 +249,8 @@ class ProductController extends Controller
             'channels.*'      => 'string|max:30',
             'status'          => 'in:draft,active,archived',
             'is_active'       => 'boolean',
+            'publish_to_website' => 'boolean',
+            'size_chart_md'   => 'nullable|string',
 
             'variants'                  => 'nullable|array',
             'variants.*.id'             => 'nullable|exists:product_variants,id',

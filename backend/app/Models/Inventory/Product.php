@@ -25,6 +25,7 @@ class Product extends Model
         'sale_starts_at', 'sale_ends_at', 'launch_date',
         'avg_rating', 'review_count',
         'channels', 'status', 'is_active',
+        'publish_to_website', 'size_chart_md',
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class Product extends Model
         'is_featured'        => 'boolean',
         'is_bestseller'      => 'boolean',
         'is_new_arrival'     => 'boolean',
+        'publish_to_website' => 'boolean',
         'sale_starts_at'     => 'datetime',
         'sale_ends_at'       => 'datetime',
         'launch_date'        => 'date',
