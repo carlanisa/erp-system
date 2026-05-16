@@ -64,8 +64,8 @@ class CartController extends Controller
     public function shippingQuote(Request $request)
     {
         $data = $request->validate([
-            'state_code' => 'required|string',
-            'country'    => 'nullable|string',
+            'state_code' => 'nullable|string',
+            'country'    => 'nullable|string|size:2',
         ]);
         $cart = $this->cartService->findOrCreate(
             $request->header('X-Cart-Token'),

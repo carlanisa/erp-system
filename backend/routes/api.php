@@ -460,8 +460,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('orders', [\App\Http\Controllers\Storefront\Admin\StorefrontOrdersController::class, 'index']);
         Route::get('orders/{id}', [\App\Http\Controllers\Storefront\Admin\StorefrontOrdersController::class, 'show']);
         Route::get('shipping-zones', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'index']);
+        Route::get('shipping-zones/{id}', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'show']);
         Route::post('shipping-zones', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'store']);
         Route::put('shipping-zones/{id}', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'update']);
+        Route::delete('shipping-zones/{id}', [\App\Http\Controllers\Storefront\Admin\ShippingZonesController::class, 'destroy']);
         Route::get('ai-transcripts', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'index']);
         Route::get('ai-transcripts/{id}', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'show']);
         Route::patch('products/{id}/publish', [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'update']);

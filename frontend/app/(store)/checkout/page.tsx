@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { storefrontApi, formatMYR } from '@/lib/storefront-api'
 import { MY_STATES } from '@/lib/my-states'
+import { COUNTRIES } from '@/lib/countries'
 import { useCartStore } from '@/stores/cart-store'
 import { useCustomerAuthStore } from '@/stores/customer-auth-store'
 
@@ -18,7 +19,8 @@ export default function CheckoutPage() {
   const hydrate = useCustomerAuthStore((s) => s.hydrate)
 
   const [form, setForm] = useState({
-    name: '', phone: '', line1: '', line2: '', city: '', state_code: 'MY-10', postcode: '',
+    name: '', phone: '', line1: '', line2: '', city: '',
+    country: 'MY', state_code: 'MY-10', postcode: '',
     guest_email: '', guest_password: '',
   })
   const [paymentMethods, setPaymentMethods] = useState<{ code: string; label: string }[]>([
@@ -38,11 +40,13 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
-    if (!form.state_code) return
-    storefrontApi.post('/shipping/quote', { state_code: form.state_code })
+    storefrontApi.post('/shipping/quote', {
+      state_code: form.country === 'MY' ? form.state_code : '',
+      country: form.country,
+    })
       .then(({ data }) => setShipping(data))
       .catch(() => setShipping(null))
-  }, [form.state_code, cart.subtotal])
+  }, [form.state_code, form.country, cart.subtotal])
 
   useEffect(() => {
     if (customer) setForm((f) => ({ ...f, name: f.name || customer.name, guest_email: customer.email }))
@@ -58,8 +62,10 @@ export default function CheckoutPage() {
         shipping_address: {
           name: form.name, phone: form.phone,
           line1: form.line1, line2: form.line2 || undefined,
-          city: form.city, state_code: form.state_code, postcode: form.postcode,
-          country: 'MY',
+          city: form.city,
+          state_code: form.country === 'MY' ? form.state_code : '',
+          postcode: form.postcode,
+          country: form.country,
         },
         payment_method: paymentMethod,
       }
@@ -114,16 +120,28 @@ export default function CheckoutPage() {
               <Field label="Address line 2 (optional)" value={form.line2} onChange={(v) => setForm({ ...form, line2: v })} wide />
               <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
               <Field label="Postcode" value={form.postcode} onChange={(v) => setForm({ ...form, postcode: v })} />
-              <div className="md:col-span-2">
-                <label className="text-xs font-medium text-neutral-700">State</label>
+              <div>
+                <label className="text-xs font-medium text-neutral-700">Country</label>
                 <select
-                  value={form.state_code}
-                  onChange={(e) => setForm({ ...form, state_code: e.target.value })}
+                  value={form.country}
+                  onChange={(e) => setForm({ ...form, country: e.target.value })}
                   className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
                 >
-                  {MY_STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </div>
+              {form.country === 'MY' && (
+                <div>
+                  <label className="text-xs font-medium text-neutral-700">State</label>
+                  <select
+                    value={form.state_code}
+                    onChange={(e) => setForm({ ...form, state_code: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-rose-500 focus:outline-none"
+                  >
+                    {MY_STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
           </section>
 
