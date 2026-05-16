@@ -25,7 +25,6 @@ export default function StorefrontOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Website Orders</h1>
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">

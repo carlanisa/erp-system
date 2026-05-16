@@ -59,16 +59,15 @@ export default function PaymentMethodsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Payment Methods</h1>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <p className="text-sm text-slate-600">
+          Built-in methods (Stripe, PayPal, Billplz, ToyyibPay) activate via secret keys. Bank Transfer + Manual methods show instructions to the customer with an optional WhatsApp link.
+        </p>
         <button onClick={() => setCreatingManual(true)}
-          className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+          className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 whitespace-nowrap">
           <Plus className="h-4 w-4" /> Add manual method
         </button>
       </div>
-      <p className="mb-6 text-sm text-slate-600">
-        Built-in methods (Stripe, PayPal, Billplz, ToyyibPay) activate via secret keys. Bank Transfer + Manual methods show instructions to the customer with an optional WhatsApp link.
-      </p>
 
       {loading ? (
         <div className="text-slate-400">Loading…</div>
