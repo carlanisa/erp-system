@@ -5,7 +5,8 @@ import { MessageCircle, X, Send } from 'lucide-react'
 import { storefrontApi, getCartToken, setCartToken } from '@/lib/storefront-api'
 import { useRouter } from 'next/navigation'
 
-type Msg = { role: 'assistant' | 'user'; text: string; quickReplies?: string[] }
+type ProductCard = { id: number; slug: string; name: string; color: string | null; price: number; image: string | null }
+type Msg = { role: 'assistant' | 'user'; text: string; quickReplies?: string[]; products?: ProductCard[] }
 
 export function StoreAiChat() {
   const [open, setOpen] = useState(false)
@@ -44,10 +45,16 @@ export function StoreAiChat() {
       if (data.session_token) setCartToken(data.session_token)
       setMessages((m) => [
         ...m,
-        { role: 'assistant', text: data.message, quickReplies: data.quick_replies },
+        { role: 'assistant', text: data.message, quickReplies: data.quick_replies, products: data.product_cards ?? [] },
       ])
       for (const action of (data.ui_actions ?? []) as any[]) {
         if (action.type === 'navigate' && action.url) router.push(action.url)
+        if (action.type === 'cart_updated') {
+          try {
+            const { useCartStore } = await import('@/stores/cart-store')
+            useCartStore.getState().refresh()
+          } catch {}
+        }
       }
     } catch {
       setMessages((m) => [
@@ -91,6 +98,28 @@ export function StoreAiChat() {
                   }`}
                 >
                   {m.text}
+                  {m.role === 'assistant' && m.products && m.products.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {m.products.slice(0, 4).map((p) => (
+                        <a
+                          key={p.id}
+                          href={`/product/${p.slug}`}
+                          className="block overflow-hidden rounded-lg border border-neutral-200 bg-white hover:border-rose-300"
+                        >
+                          <div className="aspect-square bg-neutral-100">
+                            {p.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+                            ) : null}
+                          </div>
+                          <div className="p-2">
+                            <div className="line-clamp-1 text-xs font-medium text-neutral-800">{p.name}</div>
+                            <div className="text-xs font-semibold text-rose-600">RM{Number(p.price).toFixed(2)}</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   {m.role === 'assistant' && m.quickReplies && m.quickReplies.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {m.quickReplies.map((q) => (

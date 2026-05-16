@@ -465,6 +465,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('ai-transcripts', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'index']);
         Route::get('ai-transcripts/{id}', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'show']);
         Route::patch('products/{id}/publish', [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'update']);
+
+        Route::get('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'index']);
+        Route::post('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'store']);
+        Route::put('coupons/{id}', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'update']);
+        Route::delete('coupons/{id}', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'destroy']);
+
+        Route::get('payment-methods', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'index']);
+        Route::put('payment-methods/{id}', [\App\Http\Controllers\Storefront\Admin\PaymentMethodsController::class, 'update']);
     });
 });
 
@@ -484,10 +492,23 @@ Route::prefix('storefront')->group(function () {
     Route::get('ai/greeting', [\App\Http\Controllers\Storefront\AiChatController::class, 'greeting']);
     Route::post('ai/chat', [\App\Http\Controllers\Storefront\AiChatController::class, 'chat']);
 
+    Route::post('coupons/apply', [\App\Http\Controllers\Storefront\CouponController::class, 'apply']);
+    Route::post('coupons/remove', [\App\Http\Controllers\Storefront\CouponController::class, 'remove']);
+
+    Route::get('payment-methods', function () {
+        return \App\Models\Storefront\PaymentMethod::where('enabled', true)
+            ->orderBy('sort_order')
+            ->get(['code', 'driver', 'label']);
+    });
+
     Route::post('auth/register', [\App\Http\Controllers\Storefront\AuthController::class, 'register']);
     Route::post('auth/login', [\App\Http\Controllers\Storefront\AuthController::class, 'login']);
 
     Route::post('checkout', [\App\Http\Controllers\Storefront\CheckoutController::class, 'placeOrder']);
+    Route::post('checkout/pay/{orderId}/{driver}', [\App\Http\Controllers\Storefront\PaymentController::class, 'createIntent']);
+
+    // Public webhooks
+    Route::post('webhooks/{driver}', [\App\Http\Controllers\Storefront\PaymentController::class, 'webhook']);
 
     // Customer-authenticated
     Route::middleware('auth:customer')->group(function () {
@@ -495,5 +516,12 @@ Route::prefix('storefront')->group(function () {
         Route::get('me', [\App\Http\Controllers\Storefront\AuthController::class, 'me']);
         Route::get('orders', [\App\Http\Controllers\Storefront\AccountController::class, 'orders']);
         Route::get('orders/{id}', [\App\Http\Controllers\Storefront\AccountController::class, 'order']);
+        Route::get('addresses', [\App\Http\Controllers\Storefront\AddressController::class, 'index']);
+        Route::post('addresses', [\App\Http\Controllers\Storefront\AddressController::class, 'store']);
+        Route::put('addresses/{id}', [\App\Http\Controllers\Storefront\AddressController::class, 'update']);
+        Route::delete('addresses/{id}', [\App\Http\Controllers\Storefront\AddressController::class, 'destroy']);
+        Route::get('wishlist', [\App\Http\Controllers\Storefront\WishlistController::class, 'index']);
+        Route::post('wishlist', [\App\Http\Controllers\Storefront\WishlistController::class, 'add']);
+        Route::delete('wishlist/{productId}', [\App\Http\Controllers\Storefront\WishlistController::class, 'remove']);
     });
 });

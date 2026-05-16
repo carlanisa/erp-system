@@ -26,6 +26,14 @@ export default function AccountPage() {
           <div className="text-lg font-semibold">My orders</div>
           <div className="mt-1 text-sm text-neutral-500">View past orders and track shipments.</div>
         </Link>
+        <Link href="/account/addresses" className="rounded-xl border border-neutral-200 p-5 hover:border-rose-500">
+          <div className="text-lg font-semibold">Saved addresses</div>
+          <div className="mt-1 text-sm text-neutral-500">Manage your shipping addresses.</div>
+        </Link>
+        <Link href="/account/wishlist" className="rounded-xl border border-neutral-200 p-5 hover:border-rose-500">
+          <div className="text-lg font-semibold">My wishlist</div>
+          <div className="mt-1 text-sm text-neutral-500">Items you saved for later.</div>
+        </Link>
         <button
           onClick={async () => { await logout(); router.push('/') }}
           className="rounded-xl border border-neutral-200 p-5 text-left hover:border-rose-500"
