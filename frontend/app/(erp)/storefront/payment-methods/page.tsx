@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
-import { Plus, Pencil, Trash2, X, CreditCard, Banknote, MessageCircle } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, CreditCard, Banknote, MessageCircle, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 type Method = {
   id: number
@@ -59,15 +60,19 @@ export default function PaymentMethodsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <p className="text-sm text-slate-600">
-          Built-in methods (Stripe, PayPal, Billplz, ToyyibPay) activate via secret keys. Bank Transfer + Manual methods show instructions to the customer with an optional WhatsApp link.
-        </p>
+      <Link href="/storefront" className="inline-flex items-center gap-1 mb-3 text-sm text-slate-500 hover:text-indigo-600">
+        <ArrowLeft className="h-3.5 w-3.5" /> Storefront
+      </Link>
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-slate-800">Payment Methods</h1>
         <button onClick={() => setCreatingManual(true)}
           className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 whitespace-nowrap">
           <Plus className="h-4 w-4" /> Add manual method
         </button>
       </div>
+      <p className="mb-6 text-sm text-slate-600">
+        Built-in methods (Stripe, PayPal, Billplz, ToyyibPay) activate via secret keys. Bank Transfer + Manual methods show instructions to the customer with an optional WhatsApp link.
+      </p>
 
       {loading ? (
         <div className="text-slate-400">Loading…</div>

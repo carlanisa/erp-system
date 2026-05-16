@@ -81,7 +81,7 @@ const navItems: NavItem[] = [
   },
   {
     label: 'Storefront',
-    href: '/storefront/coupons',
+    href: '/storefront',
     icon: Globe,
   },
   {

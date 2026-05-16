@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
-import { Plus, Trash2, Pencil, X } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 type Coupon = {
   id: number; code: string; description: string | null
@@ -76,7 +77,11 @@ export default function CouponsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-end">
+      <Link href="/storefront" className="inline-flex items-center gap-1 mb-3 text-sm text-slate-500 hover:text-indigo-600">
+        <ArrowLeft className="h-3.5 w-3.5" /> Storefront
+      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-slate-800">Coupons</h1>
         <button onClick={() => { setForm(empty); setEditing(null); setShowForm(true) }}
           className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
           <Plus className="h-4 w-4" /> New coupon
