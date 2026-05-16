@@ -26,7 +26,6 @@ export default function AiTranscriptsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">AI Chat Transcripts</h1>
       <div className="grid gap-4 md:grid-cols-[360px,1fr]">
         <div className="rounded-lg border border-slate-200 bg-white">
           {loading ? <div className="p-4 text-slate-400">Loading…</div> : convs.length === 0 ? (

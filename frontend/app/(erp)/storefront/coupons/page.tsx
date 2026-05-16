@@ -76,8 +76,7 @@ export default function CouponsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Coupons</h1>
+      <div className="mb-4 flex items-center justify-end">
         <button onClick={() => { setForm(empty); setEditing(null); setShowForm(true) }}
           className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
           <Plus className="h-4 w-4" /> New coupon

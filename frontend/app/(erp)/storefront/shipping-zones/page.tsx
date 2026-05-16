@@ -141,14 +141,13 @@ export default function ShippingZonesPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Shipping Zones</h1>
+        <p className="text-sm text-slate-600">
+          Configure shipping per country with weight-based tiers. Add a courier + API key for live label generation later.
+        </p>
         <button onClick={openNew} className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
           <Plus className="h-4 w-4" /> New zone
         </button>
       </div>
-      <p className="mb-6 text-sm text-slate-600">
-        Configure shipping per country with weight-based tiers. Add a courier + API key for live label generation later.
-      </p>
 
       {showForm && (
         <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
