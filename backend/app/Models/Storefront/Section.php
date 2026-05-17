@@ -8,7 +8,7 @@ class Section extends Model
 {
     protected $table = 'storefront_sections';
 
-    protected $fillable = ['type', 'label', 'position', 'enabled', 'config_json'];
+    protected $fillable = ['page_id', 'type', 'label', 'position', 'enabled', 'config_json'];
 
     protected $casts = [
         'enabled'     => 'boolean',

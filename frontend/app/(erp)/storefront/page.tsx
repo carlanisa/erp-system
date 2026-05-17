@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
-  Palette, LayoutGrid, Image as ImageIcon,
+  Palette, LayoutGrid, Image as ImageIcon, FileText,
 } from 'lucide-react'
 
 const MODULES = [
@@ -24,6 +24,15 @@ const MODULES = [
     bg:    'bg-indigo-50',
     border:'border-indigo-200',
     desc:  'Upload + manage every image used on your site. Clean slugified URLs, alt text, search, folders.',
+  },
+  {
+    title: '📑 Pages',
+    href:  '/storefront/pages',
+    icon:  FileText,
+    color: 'text-cyan-600',
+    bg:    'bg-cyan-50',
+    border:'border-cyan-200',
+    desc:  'Create About us, Shipping, FAQ, etc. Each page has its own URL + sections.',
   },
   {
     title: 'Theme Settings',
