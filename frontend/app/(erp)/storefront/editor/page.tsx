@@ -40,11 +40,18 @@ const BLOCK_GROUPS = [
 const BLOCK_BY_CODE: Record<string, any> = Object.fromEntries(BLOCK_GROUPS.flatMap((g) => g.items).map((b) => [b.code, b]))
 
 const PRESETS = [
-  { code: 'carlanisa', name: 'Carlanisa', sample: ['#5d2a2a', '#b8860b', '#fdfaf5'] },
-  { code: 'elegant',   name: 'Elegant',   sample: ['#7f1d1d', '#b8860b', '#faf7f2'] },
-  { code: 'bold',      name: 'Bold',      sample: ['#dc2626', '#fbbf24', '#fffaf0'] },
-  { code: 'minimal',   name: 'Minimal',   sample: ['#18181b', '#525252', '#ffffff'] },
-  { code: 'pastel',    name: 'Pastel',    sample: ['#86905c', '#f4a4a4', '#fdfaf6'] },
+  { code: 'carlanisa', name: 'Carlanisa',  tag: 'Luxe Modestwear',    sample: ['#5d2a2a', '#b8860b', '#fdfaf5'] },
+  { code: 'luxury',    name: 'Luxury',     tag: 'Net-a-Porter feel',  sample: ['#1a2238', '#c9a063', '#f6f1ea'] },
+  { code: 'raya',      name: 'Raya',       tag: 'Eid Festive',        sample: ['#0f5132', '#d4af37', '#fdf8ec'] },
+  { code: 'elegant',   name: 'Elegant',    tag: 'Maroon + Gold',      sample: ['#7f1d1d', '#b8860b', '#faf7f2'] },
+  { code: 'modern',    name: 'Modern',     tag: 'Allbirds clean',     sample: ['#0a0a0a', '#ef4444', '#ffffff'] },
+  { code: 'minimal',   name: 'Minimal',    tag: 'Pure mono',          sample: ['#18181b', '#525252', '#ffffff'] },
+  { code: 'noir',      name: 'Noir',       tag: 'Streetwear',         sample: ['#000000', '#facc15', '#fafafa'] },
+  { code: 'bold',      name: 'Bold',       tag: 'Festive sale',       sample: ['#dc2626', '#fbbf24', '#fffaf0'] },
+  { code: 'tropical',  name: 'Tropical',   tag: 'Peacock + coral',    sample: ['#0f7c8a', '#ff8a65', '#fffaf2'] },
+  { code: 'earth',     name: 'Earth',      tag: 'Sustainable',        sample: ['#9c4221', '#7a8450', '#f9f3eb'] },
+  { code: 'pastel',    name: 'Pastel',     tag: 'Spring soft',        sample: ['#86905c', '#f4a4a4', '#fdfaf6'] },
+  { code: 'lavender',  name: 'Lavender',   tag: 'Dreamy romantic',    sample: ['#7c3aed', '#f9a8d4', '#fdfaff'] },
 ]
 const FONT_OPTIONS = ['Playfair Display','Cormorant Garamond','Bebas Neue','Inter','Lato','Poppins','DM Sans','Montserrat']
 const DEVICE_WIDTHS:  Record<Device, string> = { desktop: '100%',  tablet: '820px',  mobile: '390px' }
@@ -252,16 +259,25 @@ export default function ThemeEditorPage() {
           <Panel title="Color & Fonts" icon={Palette} open={openPanel === 'theme'} onToggle={() => setOpenPanel(openPanel === 'theme' ? null : 'theme')}>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-slate-600">Quick presets</label>
-                <div className="mt-2 grid grid-cols-5 gap-1.5">
-                  {PRESETS.map((p) => (
-                    <button key={p.code} onClick={() => applyPreset(p.code)} title={p.name}
-                      className={`rounded-md border p-2 ${settings.preset === p.code ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'}`}>
-                      <div className="flex gap-0.5">
-                        {p.sample.map((c) => <span key={c} className="h-3 w-3 rounded-full" style={{ background: c }} />)}
-                      </div>
-                    </button>
-                  ))}
+                <label className="text-xs font-medium text-slate-600">Quick presets — 12 top looks</label>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {PRESETS.map((p) => {
+                    const active = settings.preset === p.code
+                    return (
+                      <button key={p.code} onClick={() => applyPreset(p.code)} title={`${p.name} — ${p.tag}`}
+                        className={`flex flex-col items-stretch gap-1.5 rounded-md border p-2 text-left transition ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-indigo-300 hover:shadow-sm'}`}>
+                        <div className="flex h-6 overflow-hidden rounded">
+                          {p.sample.map((c) => (
+                            <span key={c} className="flex-1" style={{ background: c }} />
+                          ))}
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-semibold text-slate-800 leading-tight">{p.name}</div>
+                          <div className="text-[10px] text-slate-500 leading-tight">{p.tag}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
               <ColorRow label="Primary"       k="color_primary" settings={settings} setSettings={setSettings} />

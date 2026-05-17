@@ -49,13 +49,36 @@ class ThemeSettingsController extends Controller
 
     public function applyPreset(Request $request)
     {
-        $preset = $request->validate(['preset' => 'required|in:elegant,bold,minimal,pastel,carlanisa'])['preset'];
+        $preset = $request->validate(['preset' => 'required|in:carlanisa,elegant,bold,minimal,pastel,luxury,raya,modern,earth,tropical,noir,lavender'])['preset'];
         $palettes = [
-            'elegant'   => ['color_primary' => '#7f1d1d', 'color_accent' => '#b8860b', 'color_bg' => '#faf7f2', 'color_surface' => '#ffffff', 'color_text' => '#2b1d14', 'color_muted' => '#6b5d4f', 'font_heading' => 'Playfair Display', 'font_body' => 'Inter'],
-            'bold'      => ['color_primary' => '#dc2626', 'color_accent' => '#fbbf24', 'color_bg' => '#fffaf0', 'color_surface' => '#ffffff', 'color_text' => '#18181b', 'color_muted' => '#71717a', 'font_heading' => 'Bebas Neue', 'font_body' => 'Inter'],
-            'minimal'   => ['color_primary' => '#18181b', 'color_accent' => '#525252', 'color_bg' => '#ffffff', 'color_surface' => '#fafafa', 'color_text' => '#18181b', 'color_muted' => '#737373', 'font_heading' => 'Inter', 'font_body' => 'Inter'],
-            'pastel'    => ['color_primary' => '#86905c', 'color_accent' => '#f4a4a4', 'color_bg' => '#fdfaf6', 'color_surface' => '#ffffff', 'color_text' => '#3f3f46', 'color_muted' => '#71717a', 'font_heading' => 'Cormorant Garamond', 'font_body' => 'Lato'],
-            'carlanisa' => ['color_primary' => '#5d2a2a', 'color_accent' => '#b8860b', 'color_bg' => '#fdfaf5', 'color_surface' => '#ffffff', 'color_text' => '#2b1d14', 'color_muted' => '#6b5d4f', 'font_heading' => 'Playfair Display', 'font_body' => 'Inter'],
+            // ── Originals ────────────────────────────────────────────────
+            'carlanisa' => ['color_primary' => '#5d2a2a', 'color_accent' => '#b8860b', 'color_bg' => '#fdfaf5', 'color_surface' => '#ffffff', 'color_text' => '#2b1d14', 'color_muted' => '#6b5d4f', 'color_sale' => '#dc2626', 'font_heading' => 'Playfair Display', 'font_body' => 'Inter'],
+            'elegant'   => ['color_primary' => '#7f1d1d', 'color_accent' => '#b8860b', 'color_bg' => '#faf7f2', 'color_surface' => '#ffffff', 'color_text' => '#2b1d14', 'color_muted' => '#6b5d4f', 'color_sale' => '#dc2626', 'font_heading' => 'Playfair Display', 'font_body' => 'Inter'],
+            'bold'      => ['color_primary' => '#dc2626', 'color_accent' => '#fbbf24', 'color_bg' => '#fffaf0', 'color_surface' => '#ffffff', 'color_text' => '#18181b', 'color_muted' => '#71717a', 'color_sale' => '#ea580c', 'font_heading' => 'Bebas Neue', 'font_body' => 'Inter'],
+            'minimal'   => ['color_primary' => '#18181b', 'color_accent' => '#525252', 'color_bg' => '#ffffff', 'color_surface' => '#fafafa', 'color_text' => '#18181b', 'color_muted' => '#737373', 'color_sale' => '#dc2626', 'font_heading' => 'Inter',            'font_body' => 'Inter'],
+            'pastel'    => ['color_primary' => '#86905c', 'color_accent' => '#f4a4a4', 'color_bg' => '#fdfaf6', 'color_surface' => '#ffffff', 'color_text' => '#3f3f46', 'color_muted' => '#71717a', 'color_sale' => '#e11d48', 'font_heading' => 'Cormorant Garamond','font_body' => 'Lato'],
+
+            // ── New top-list presets ────────────────────────────────────
+            // Luxury Boutique — Mytheresa / Net-a-Porter style: deep navy + cream + gold
+            'luxury'    => ['color_primary' => '#1a2238', 'color_accent' => '#c9a063', 'color_bg' => '#f6f1ea', 'color_surface' => '#ffffff', 'color_text' => '#1a2238', 'color_muted' => '#5d6478', 'color_sale' => '#9b1c1c', 'font_heading' => 'Cormorant Garamond','font_body' => 'Inter'],
+
+            // Raya / Eid Festive — emerald + gold + cream, celebratory
+            'raya'      => ['color_primary' => '#0f5132', 'color_accent' => '#d4af37', 'color_bg' => '#fdf8ec', 'color_surface' => '#ffffff', 'color_text' => '#1c1c1c', 'color_muted' => '#5b6862', 'color_sale' => '#c1272d', 'font_heading' => 'Playfair Display',  'font_body' => 'Lato'],
+
+            // Modern Minimalist — pure white + black with red accent. Allbirds / Aesop vibe.
+            'modern'    => ['color_primary' => '#0a0a0a', 'color_accent' => '#ef4444', 'color_bg' => '#ffffff', 'color_surface' => '#fafafa', 'color_text' => '#0a0a0a', 'color_muted' => '#737373', 'color_sale' => '#ef4444', 'font_heading' => 'DM Sans',          'font_body' => 'DM Sans'],
+
+            // Earth Organic — terracotta + olive + sand. Sustainable brand feel.
+            'earth'     => ['color_primary' => '#9c4221', 'color_accent' => '#7a8450', 'color_bg' => '#f9f3eb', 'color_surface' => '#ffffff', 'color_text' => '#3b2f25', 'color_muted' => '#7a6c5d', 'color_sale' => '#c1272d', 'font_heading' => 'Cormorant Garamond','font_body' => 'Inter'],
+
+            // Tropical Vibrant — peacock blue + coral + cream, festive
+            'tropical'  => ['color_primary' => '#0f7c8a', 'color_accent' => '#ff8a65', 'color_bg' => '#fffaf2', 'color_surface' => '#ffffff', 'color_text' => '#22333b', 'color_muted' => '#6b7c87', 'color_sale' => '#e63946', 'font_heading' => 'Poppins',         'font_body' => 'Poppins'],
+
+            // Mono Noir — black + grey + warm white. Streetwear, bold drops.
+            'noir'      => ['color_primary' => '#000000', 'color_accent' => '#facc15', 'color_bg' => '#fafafa', 'color_surface' => '#ffffff', 'color_text' => '#0a0a0a', 'color_muted' => '#525252', 'color_sale' => '#facc15', 'font_heading' => 'Bebas Neue',      'font_body' => 'Inter'],
+
+            // Lavender Dream — lavender + dusty rose + cream, romantic
+            'lavender'  => ['color_primary' => '#7c3aed', 'color_accent' => '#f9a8d4', 'color_bg' => '#fdfaff', 'color_surface' => '#ffffff', 'color_text' => '#3f3f46', 'color_muted' => '#6b7280', 'color_sale' => '#e11d48', 'font_heading' => 'Cormorant Garamond','font_body' => 'Poppins'],
         ];
         $row = ThemeSetting::current();
         $row->update(array_merge(['preset' => $preset], $palettes[$preset]));
