@@ -9,11 +9,18 @@ import { ArrowLeft, Palette, Save, ExternalLink, Eye } from 'lucide-react'
 type Settings = Record<string, any>
 
 const PRESETS = [
-  { code: 'carlanisa', name: 'Carlanisa Luxe', sample: ['#5d2a2a', '#b8860b', '#fdfaf5'] },
-  { code: 'elegant',   name: 'Elegant Modestwear', sample: ['#7f1d1d', '#b8860b', '#faf7f2'] },
-  { code: 'bold',      name: 'Bold & Festive', sample: ['#dc2626', '#fbbf24', '#fffaf0'] },
-  { code: 'minimal',   name: 'Minimal Mono', sample: ['#18181b', '#525252', '#ffffff'] },
-  { code: 'pastel',    name: 'Pastel Spring', sample: ['#86905c', '#f4a4a4', '#fdfaf6'] },
+  { code: 'carlanisa', name: 'Carlanisa',  tag: 'Luxe Modestwear',    sample: ['#5d2a2a', '#b8860b', '#fdfaf5'] },
+  { code: 'luxury',    name: 'Luxury',     tag: 'Net-a-Porter feel',  sample: ['#1a2238', '#c9a063', '#f6f1ea'] },
+  { code: 'raya',      name: 'Raya',       tag: 'Eid Festive',        sample: ['#0f5132', '#d4af37', '#fdf8ec'] },
+  { code: 'elegant',   name: 'Elegant',    tag: 'Maroon + Gold',      sample: ['#7f1d1d', '#b8860b', '#faf7f2'] },
+  { code: 'modern',    name: 'Modern',     tag: 'Allbirds clean',     sample: ['#0a0a0a', '#ef4444', '#ffffff'] },
+  { code: 'minimal',   name: 'Minimal',    tag: 'Pure mono',          sample: ['#18181b', '#525252', '#ffffff'] },
+  { code: 'noir',      name: 'Noir',       tag: 'Streetwear',         sample: ['#000000', '#facc15', '#fafafa'] },
+  { code: 'bold',      name: 'Bold',       tag: 'Festive sale',       sample: ['#dc2626', '#fbbf24', '#fffaf0'] },
+  { code: 'tropical',  name: 'Tropical',   tag: 'Peacock + coral',    sample: ['#0f7c8a', '#ff8a65', '#fffaf2'] },
+  { code: 'earth',     name: 'Earth',      tag: 'Sustainable',        sample: ['#9c4221', '#7a8450', '#f9f3eb'] },
+  { code: 'pastel',    name: 'Pastel',     tag: 'Spring soft',        sample: ['#86905c', '#f4a4a4', '#fdfaf6'] },
+  { code: 'lavender',  name: 'Lavender',   tag: 'Dreamy romantic',    sample: ['#7c3aed', '#f9a8d4', '#fdfaff'] },
 ]
 const FONT_OPTIONS = [
   'Playfair Display', 'Cormorant Garamond', 'Bebas Neue', 'Inter', 'Lato', 'Poppins', 'DM Sans', 'Montserrat',
@@ -79,18 +86,24 @@ export default function ThemePage() {
 
       {/* Presets */}
       <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Color presets</h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-slate-700">Theme presets — 12 top looks</h2>
+          <span className="text-xs text-slate-400">One click swaps colors + fonts</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
           {PRESETS.map((p) => {
             const active = s.preset === p.code
             return (
               <button key={p.code} onClick={() => applyPreset(p.code)}
-                className={`rounded-lg border p-3 text-left transition hover:shadow-sm ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200'}`}>
-                <div className="mb-2 flex gap-1.5">
-                  {p.sample.map((c) => <span key={c} className="h-6 w-6 rounded-full" style={{ background: c }} />)}
+                className={`flex flex-col items-stretch gap-2 rounded-lg border p-3 text-left transition hover:shadow-sm ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200'}`}>
+                <div className="flex h-10 overflow-hidden rounded-md">
+                  {p.sample.map((c) => <span key={c} className="flex-1" style={{ background: c }} />)}
                 </div>
-                <div className="text-sm font-semibold">{p.name}</div>
-                {active && <div className="mt-0.5 text-xs text-indigo-600">Current</div>}
+                <div>
+                  <div className="text-sm font-semibold text-slate-800">{p.name}</div>
+                  <div className="text-xs text-slate-500">{p.tag}</div>
+                  {active && <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-indigo-600">● Current</div>}
+                </div>
               </button>
             )
           })}
