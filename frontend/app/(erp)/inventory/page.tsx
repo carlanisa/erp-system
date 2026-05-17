@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Package, ClipboardList, GitBranch, Scissors,
   BarChart2, AlertCircle, TrendingUp, FileText, ShoppingCart, Send,
-  Settings,
+  Settings, Tag,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
@@ -23,6 +23,7 @@ const MODULES = [
   // Masters
   { title: 'Master Setup',           href: '/inventory/setup',        icon: Settings,  color: 'text-slate-700',  bg: 'bg-slate-50',  border:'border-slate-200',  desc: 'Locations · Categories · Types · Departments · Tailors · BOM' },
   { title: 'Products',               href: '/inventory/products',     icon: Package,   color: 'text-violet-600', bg: 'bg-violet-50', border:'border-violet-100', desc: 'Finished goods + fabric / raw materials (single SKU master)' },
+  { title: 'Barcode Print',          href: '/inventory/barcodes',     icon: Tag,       color: 'text-amber-700',  bg: 'bg-amber-50',  border:'border-amber-200',  desc: 'Pick product → set qty per variant → print labels (size editable)' },
 
   // Production workflow — single document tracks order → issue → receipts → bill
   { title: 'Send to Tailor (Production Order)', href: '/inventory/send-to-tailor', icon: Send, color: 'text-fuchsia-700', bg: 'bg-gradient-to-br from-fuchsia-50 to-teal-50', border:'border-fuchsia-200', desc: 'Order → fabric issue → receive (×N) → tailor bill — all in one document' },

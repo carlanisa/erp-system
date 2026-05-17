@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import BomEditorPanel from '@/components/inventory/BomEditorPanel'
 
 // ─────────── types ───────────
 type Location = {
@@ -142,8 +143,9 @@ export default function InventorySetupPage() {
   const [editTailor, setEditTailor]         = useState<Partial<Tailor>>({})
   const [savingTailor, setSavingTailor]     = useState(false)
 
-  // ─── BOMs (read-only list with link to full editor) ───
+  // ─── BOMs (inline list + editor) ───
   const [boms, setBoms]                     = useState<Bom[]>([])
+  const [editingBomId, setEditingBomId]     = useState<number | 'new' | null>(null)  // null = list, 'new' = create, number = edit
 
   // ─── Collections ───
   const [colls, setColls]                   = useState<Collection[]>([])
@@ -1076,21 +1078,37 @@ export default function InventorySetupPage() {
         </section>
       )}
 
-      {/* ─── BOMs (read-only list, full editor link) ─── */}
-      {active === 'boms' && (
+      {/* ─── BOMs (inline list + editor) ─── */}
+      {active === 'boms' && editingBomId !== null && (
+        <BomEditorPanel
+          bomId={editingBomId}
+          onClose={() => setEditingBomId(null)}
+          onSaved={() => {
+            setEditingBomId(null)
+            api.get('/inventory/boms').then(r => setBoms(r.data.data ?? [])).catch(() => {})
+          }}
+        />
+      )}
+      {active === 'boms' && editingBomId === null && (
         <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-amber-50/40">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-amber-700" />
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Bill of Material</h3>
-                <p className="text-[11px] text-slate-500">Multi-line stitching · materials · overhead. Use full editor to create / edit lines.</p>
+                <p className="text-[11px] text-slate-500">Multi-line stitching · materials · overhead. Recipe per finished product.</p>
               </div>
             </div>
-            <button onClick={() => router.push('/inventory/bom')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded hover:bg-amber-700">
-              <Plus className="w-3.5 h-3.5" /> Open BOM editor
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => api.get('/inventory/boms').then(r => setBoms(r.data.data ?? [])).catch(() => {})}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded hover:bg-slate-200">
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
+              </button>
+              <button onClick={() => setEditingBomId('new')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded hover:bg-amber-700">
+                <Plus className="w-3.5 h-3.5" /> New BOM
+              </button>
+            </div>
           </div>
           <div className="p-4">
             <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -1102,14 +1120,16 @@ export default function InventorySetupPage() {
                     <th className="text-left px-3 py-2 text-[10px] uppercase font-semibold text-slate-600">Description</th>
                     <th className="text-right px-3 py-2 text-[10px] uppercase font-semibold text-slate-600 w-28">Total Cost</th>
                     <th className="text-center px-3 py-2 text-[10px] uppercase font-semibold text-slate-600 w-24">Status</th>
-                    <th className="text-center px-3 py-2 text-[10px] uppercase font-semibold text-slate-600 w-20">Open</th>
+                    <th className="text-center px-3 py-2 text-[10px] uppercase font-semibold text-slate-600 w-24">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {boms.length === 0 ? (
-                    <tr><td colSpan={6} className="py-8 text-center text-slate-400 italic text-xs">No BOMs yet — open the BOM editor to create one</td></tr>
+                    <tr><td colSpan={6} className="py-8 text-center text-slate-400 italic text-xs">No BOMs yet — click "+ New BOM" to create one</td></tr>
                   ) : boms.map((b, i) => (
-                    <tr key={b.id} className={`border-t border-slate-100 hover:bg-amber-50/40 ${i%2===0?'bg-white':'bg-slate-50/40'}`}>
+                    <tr key={b.id}
+                      onDoubleClick={() => setEditingBomId(b.id)}
+                      className={`border-t border-slate-100 hover:bg-amber-50/40 cursor-pointer ${i%2===0?'bg-white':'bg-slate-50/40'}`}>
                       <td className="px-3 py-1.5 font-mono font-bold text-amber-700">{b.bom_code}</td>
                       <td className="px-3 py-1.5 text-slate-800">{b.product?.name ?? '—'}</td>
                       <td className="px-3 py-1.5 text-slate-600 truncate max-w-[280px]">{b.description ?? '—'}</td>
@@ -1118,14 +1138,24 @@ export default function InventorySetupPage() {
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 capitalize">{b.status}</span>
                       </td>
                       <td className="px-3 py-1 text-center">
-                        <button onClick={() => router.push(`/inventory/bom?id=${b.id}`)}
+                        <button onClick={() => setEditingBomId(b.id)} title="Edit"
                           className="p-1 rounded text-amber-600 hover:bg-amber-50"><Pencil className="w-3 h-3" /></button>
+                        <button onClick={async () => {
+                          if (!confirm(`Delete BOM ${b.bom_code}?`)) return
+                          try {
+                            await api.delete(`/inventory/boms/${b.id}`)
+                            toast.success('Deleted')
+                            api.get('/inventory/boms').then(r => setBoms(r.data.data ?? [])).catch(() => {})
+                          } catch (e: any) { toast.error(e?.response?.data?.message ?? 'Cannot delete') }
+                        }} title="Delete"
+                          className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 ml-1"><Trash2 className="w-3 h-3" /></button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-[10px] text-slate-400 italic">Tip: double-click a row to edit inline.</p>
           </div>
         </section>
       )}
