@@ -50,50 +50,6 @@ class ShopifyImportService
             : $this->testAdmin($s);
     }
 
-        // 1) Quick sanity on domain — Shopify Admin API ONLY works on *.myshopify.com,
-        //    NOT on the customer-facing custom domain (carlanisa.com etc.). Surface
-        //    this very early because it's the #1 cause of 403/404.
-        if (!preg_match('/\.myshopify\.com$/i', $host)) {
-            return [
-                'ok' => false,
-                'status' => 0,
-                'message' => "Shop domain must end in .myshopify.com — got: $host",
-                'hint' => "Open your Shopify admin: top-left shop switcher shows the .myshopify.com URL. Custom domain (carlanisa.com) is for customers, not the Admin API.",
-                'url' => $url,
-            ];
-        }
-
-        try {
-            $resp = $this->req($s, 'shop.json');
-        } catch (\Throwable $e) {
-            return ['ok' => false, 'message' => 'Network error: ' . $e->getMessage(), 'url' => $url];
-        }
-
-        if ($resp->successful()) {
-            $shop = $resp->json('shop');
-            return ['ok' => true, 'shop' => [
-                'name'    => $shop['name']  ?? null,
-                'email'   => $shop['email'] ?? null,
-                'plan'    => $shop['plan_display_name'] ?? null,
-                'country' => $shop['country_name'] ?? null,
-                'domain'  => $shop['domain']  ?? null,
-            ]];
-        }
-
-        $status = $resp->status();
-        $body   = substr($resp->body(), 0, 400);
-        $hint   = $this->hintForStatus($status, $body);
-
-        return [
-            'ok'      => false,
-            'status'  => $status,
-            'message' => "Shopify returned HTTP $status",
-            'hint'    => $hint,
-            'url'     => $url,
-            'body'    => $body,
-        ];
-    }
-
     private function hintForStatus(int $status, string $body): string
     {
         if ($status === 401) {
