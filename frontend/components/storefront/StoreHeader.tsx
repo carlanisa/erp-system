@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingBag, User, Search, Menu, Globe } from 'lucide-react'
+import { ShoppingBag, User, Search, Menu, Globe, ChevronDown } from 'lucide-react'
 import { useCartStore } from '@/stores/cart-store'
 import { useCustomerAuthStore } from '@/stores/customer-auth-store'
 import { useStoreTheme } from '@/components/storefront/ThemeProvider'
@@ -27,11 +27,13 @@ export function StoreHeader() {
 
   // Fallback to defaults if menu admin hasn't added any items
   const items: MenuItem[] = menu.length > 0 ? menu : [
-    { id: -1, label: 'Shop',         href: '/shop',                open_new: false, sort_order: 1 },
-    { id: -2, label: 'Baju Kurung',  href: '/shop/baju-kurung',    open_new: false, sort_order: 2 },
-    { id: -3, label: 'Hijab',        href: '/shop/hijab',          open_new: false, sort_order: 3 },
-    { id: -4, label: 'New Arrivals', href: '/shop/new-arrivals',   open_new: false, sort_order: 4 },
+    { id: -1, parent_id: null, label: 'Shop',         href: '/shop',                open_new: false, sort_order: 1 },
+    { id: -2, parent_id: null, label: 'Baju Kurung',  href: '/collections/baju-kurung',    open_new: false, sort_order: 2 },
+    { id: -3, parent_id: null, label: 'Hijab',        href: '/collections/hijab',          open_new: false, sort_order: 3 },
+    { id: -4, parent_id: null, label: 'New Arrivals', href: '/collections/new-arrivals',   open_new: false, sort_order: 4 },
   ]
+  const rootItems = items.filter((i) => i.parent_id == null).sort((a, b) => a.sort_order - b.sort_order)
+  const childrenOf = (parentId: number) => items.filter((i) => i.parent_id === parentId).sort((a, b) => a.sort_order - b.sort_order)
 
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/85 backdrop-blur">
@@ -45,12 +47,33 @@ export function StoreHeader() {
         </Link>
 
         <nav className="hidden gap-7 text-sm font-medium lg:flex" style={{ color: 'var(--brand-text)' }}>
-          {items.map((it) => (
-            <Link key={it.id} href={it.href} target={it.open_new ? '_blank' : undefined}
-              className="hover:opacity-70 transition">
-              {it.label}
-            </Link>
-          ))}
+          {rootItems.map((it) => {
+            const kids = childrenOf(it.id)
+            if (kids.length === 0) {
+              return (
+                <Link key={it.id} href={it.href} target={it.open_new ? '_blank' : undefined}
+                  className="hover:opacity-70 transition">
+                  {it.label}
+                </Link>
+              )
+            }
+            return (
+              <div key={it.id} className="group relative">
+                <Link href={it.href} target={it.open_new ? '_blank' : undefined}
+                  className="inline-flex items-center gap-0.5 hover:opacity-70 transition">
+                  {it.label} <ChevronDown className="h-3 w-3" />
+                </Link>
+                <div className="invisible absolute left-0 top-full z-50 mt-2 min-w-[200px] rounded-lg border border-neutral-200 bg-white p-1 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100">
+                  {kids.map((c) => (
+                    <Link key={c.id} href={c.href} target={c.open_new ? '_blank' : undefined}
+                      className="block rounded px-3 py-2 text-sm hover:bg-neutral-50">
+                      {c.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -80,12 +103,27 @@ export function StoreHeader() {
       {mobileOpen && (
         <div className="border-t border-neutral-200 bg-white px-4 py-3 lg:hidden">
           <div className="flex flex-col gap-3 text-sm font-medium text-neutral-700">
-            {items.map((it) => (
-              <Link key={it.id} href={it.href} target={it.open_new ? '_blank' : undefined}
-                onClick={() => setMobileOpen(false)}>
-                {it.label}
-              </Link>
-            ))}
+            {rootItems.map((it) => {
+              const kids = childrenOf(it.id)
+              return (
+                <div key={it.id}>
+                  <Link href={it.href} target={it.open_new ? '_blank' : undefined}
+                    onClick={() => setMobileOpen(false)} className="block font-medium">
+                    {it.label}
+                  </Link>
+                  {kids.length > 0 && (
+                    <div className="mt-1 ml-3 flex flex-col gap-1 border-l border-neutral-200 pl-3">
+                      {kids.map((c) => (
+                        <Link key={c.id} href={c.href} target={c.open_new ? '_blank' : undefined}
+                          onClick={() => setMobileOpen(false)} className="block text-neutral-600">
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

@@ -68,7 +68,7 @@ export function CartSuggestions() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {g.products.map((p) => (
               <div key={p.id} className="group rounded-xl border border-neutral-200 p-2">
-                <Link href={`/product/${p.slug}`} className="block">
+                <Link href={`/products/${p.slug}`} className="block">
                   <div className="aspect-[3/4] overflow-hidden rounded-lg bg-neutral-100">
                     {p.image ? (
                       // eslint-disable-next-line @next/next/no-img-element

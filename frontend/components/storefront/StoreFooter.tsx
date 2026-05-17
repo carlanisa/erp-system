@@ -17,9 +17,9 @@ export function StoreFooter() {
   const tagline = s?.brand_tagline ?? 'Curated modestwear for the modern Malaysian woman.'
 
   const shopItems: MenuItem[] = menus.footer_shop ?? [
-    { id: -1, label: 'Baju Kurung',  href: '/shop/baju-kurung',    open_new: false, sort_order: 1 },
-    { id: -2, label: 'Hijab',        href: '/shop/hijab',          open_new: false, sort_order: 2 },
-    { id: -3, label: 'New Arrivals', href: '/shop/new-arrivals',   open_new: false, sort_order: 3 },
+    { id: -1, label: 'Baju Kurung',  href: '/collections/baju-kurung',    open_new: false, sort_order: 1 },
+    { id: -2, label: 'Hijab',        href: '/collections/hijab',          open_new: false, sort_order: 2 },
+    { id: -3, label: 'New Arrivals', href: '/collections/new-arrivals',   open_new: false, sort_order: 3 },
     { id: -4, label: 'All Products', href: '/shop',                open_new: false, sort_order: 4 },
   ]
   const helpItems: MenuItem[] = menus.footer_help ?? []

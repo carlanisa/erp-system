@@ -61,7 +61,7 @@ export default function WishlistPage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {items.map((it) => it.product && (
             <div key={it.id} className="group relative rounded-xl border border-neutral-200 p-3">
-              <Link href={`/product/${it.product.seo_slug || it.product.id}`}>
+              <Link href={`/products/${it.product.seo_slug || it.product.id}`}>
                 <div className="aspect-[3/4] overflow-hidden rounded-md bg-neutral-100">
                   {it.product.featured_image_url || it.product.gallery_urls?.[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element

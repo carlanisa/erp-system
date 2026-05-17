@@ -1,6 +1,6 @@
 import { storefrontApi } from './storefront-api'
 
-export type MenuItem = { id: number; label: string; href: string; open_new: boolean; sort_order: number }
+export type MenuItem = { id: number; parent_id: number | null; label: string; href: string; open_new: boolean; sort_order: number }
 export type MenuMap = Partial<Record<'header' | 'footer_shop' | 'footer_help' | 'footer_company', MenuItem[]>>
 
 export async function fetchMenus(): Promise<MenuMap> {

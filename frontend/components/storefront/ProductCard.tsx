@@ -18,7 +18,7 @@ export type StoreProduct = {
 
 export function ProductCard({ product }: { product: StoreProduct }) {
   const img = product.featured_image_url || product.gallery_urls?.[0] || product.image_path
-  const href = `/product/${product.seo_slug || product.id}`
+  const href = `/products/${product.seo_slug || product.id}`
   const onSale =
     product.original_price && product.original_price > product.sale_price ? true : false
 

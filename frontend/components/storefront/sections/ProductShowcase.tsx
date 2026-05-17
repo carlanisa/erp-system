@@ -40,12 +40,12 @@ export function ProductShowcase({ config }: { config: { product?: Product; kicke
             <span className="text-2xl font-semibold" style={{ color: onSale ? 'var(--brand-sale)' : 'var(--brand-text)' }}>{formatMYR(p.price)}</span>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href={`/product/${p.slug}`}
+            <Link href={`/products/${p.slug}`}
               className="rounded-full px-7 py-3 text-sm font-semibold uppercase tracking-wider text-white"
               style={{ background: 'var(--brand-primary)' }}>
               Shop Now
             </Link>
-            <Link href={`/product/${p.slug}`}
+            <Link href={`/products/${p.slug}`}
               className="rounded-full border px-7 py-3 text-sm font-semibold uppercase tracking-wider"
               style={{ borderColor: 'var(--brand-text)', color: 'var(--brand-text)' }}>
               View Details

@@ -15,11 +15,12 @@ class NavController extends Controller
         $out = [];
         foreach (Menu::with('items')->get() as $m) {
             $out[$m->location] = $m->items->map(fn($i) => [
-                'id'       => $i->id,
-                'label'    => $i->label,
-                'href'     => $i->href,
-                'open_new' => (bool) $i->open_in_new_tab,
-                'sort_order' => $i->sort_order,
+                'id'        => $i->id,
+                'parent_id' => $i->parent_id,
+                'label'     => $i->label,
+                'href'      => $i->href,
+                'open_new'  => (bool) $i->open_in_new_tab,
+                'sort_order'=> $i->sort_order,
             ])->values();
         }
         return response()->json($out);
