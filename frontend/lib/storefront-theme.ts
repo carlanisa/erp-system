@@ -47,7 +47,9 @@ export type AnnouncementBarPayload = {
 
 export type StorePage = {
   id: number; slug: string; title: string
-  meta_title: string | null; meta_description: string | null; is_home: boolean
+  meta_title: string | null; meta_description: string | null
+  og_image_url?: string | null; language?: string | null
+  is_home: boolean
 }
 
 export type ThemePayload = {

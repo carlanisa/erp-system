@@ -52,6 +52,8 @@ class PagesController extends Controller
             'title' => 'nullable|string|max:160',
             'meta_title' => 'nullable|string|max:160',
             'meta_description' => 'nullable|string|max:255',
+            'og_image_url' => 'nullable|string|max:500',
+            'language' => 'nullable|string|max:8',
             'is_published' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
         ]);

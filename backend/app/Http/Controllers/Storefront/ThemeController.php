@@ -38,6 +38,7 @@ class ThemeController extends Controller
             'page'         => [
                 'id' => $page->id, 'slug' => $page->slug, 'title' => $page->title,
                 'meta_title' => $page->meta_title, 'meta_description' => $page->meta_description,
+                'og_image_url' => $page->og_image_url, 'language' => $page->language,
                 'is_home' => $page->is_home,
             ],
             'settings'     => $settings,

@@ -13,6 +13,7 @@ class ThemeSetting extends Model
     protected $casts = [
         'newsletter_popup_enabled' => 'boolean',
         'extra_json' => 'array',
+        'enabled_languages' => 'array',
     ];
 
     /** There's a single row — auto-create one with defaults if missing. */
