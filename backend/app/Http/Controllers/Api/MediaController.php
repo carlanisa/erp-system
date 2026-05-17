@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Models\MediaFolder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -96,5 +98,85 @@ class MediaController extends Controller
     private function humanize(string $slug): string
     {
         return Str::title(str_replace('-', ' ', $slug));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Folders
+    // ─────────────────────────────────────────────────────────────
+
+    /** Return every folder with image count + total size. */
+    public function folders()
+    {
+        $stats = Media::select('folder', DB::raw('count(*) as count'), DB::raw('coalesce(sum(size),0) as size'))
+            ->groupBy('folder')->get()->keyBy('folder');
+
+        $known = MediaFolder::orderBy('name')->pluck('name')->all();
+        // Include any folder that has media but isn't yet a row in media_folders
+        $names = array_values(array_unique(array_merge($known, $stats->keys()->all())));
+        sort($names, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $total = (int) Media::count();
+        $totalSize = (int) Media::sum('size');
+
+        return response()->json([
+            'total_count' => $total,
+            'total_size'  => $totalSize,
+            'folders' => array_map(fn($n) => [
+                'name'  => $n,
+                'count' => (int) ($stats[$n]->count ?? 0),
+                'size'  => (int) ($stats[$n]->size  ?? 0),
+            ], $names),
+        ]);
+    }
+
+    public function createFolder(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:60']);
+        $slug = MediaFolder::slug($data['name']);
+        $folder = MediaFolder::firstOrCreate(['name' => $slug]);
+        return response()->json($folder, 201);
+    }
+
+    public function renameFolder(Request $request, string $name)
+    {
+        $data = $request->validate(['name' => 'required|string|max:60']);
+        $newName = MediaFolder::slug($data['name']);
+        if ($newName === $name) return response()->json(['ok' => true]);
+        if (MediaFolder::where('name', $newName)->exists() && $newName !== 'uploads') {
+            return response()->json(['message' => 'A folder with this name already exists.'], 422);
+        }
+        DB::transaction(function () use ($name, $newName) {
+            MediaFolder::where('name', $name)->update(['name' => $newName]);
+            Media::where('folder', $name)->update(['folder' => $newName]);
+        });
+        return response()->json(['ok' => true, 'name' => $newName]);
+    }
+
+    public function deleteFolder(Request $request, string $name)
+    {
+        if ($name === 'uploads') {
+            return response()->json(['message' => 'Cannot delete the default uploads folder.'], 422);
+        }
+        $count = Media::where('folder', $name)->count();
+        $moveTo = $request->input('move_to', 'uploads');
+        if ($count > 0) {
+            Media::where('folder', $name)->update(['folder' => $moveTo]);
+        }
+        MediaFolder::where('name', $name)->delete();
+        return response()->json(['ok' => true, 'moved' => $count, 'to' => $moveTo]);
+    }
+
+    public function bulkMove(Request $request)
+    {
+        $data = $request->validate([
+            'ids'    => 'required|array|min:1',
+            'ids.*'  => 'integer',
+            'folder' => 'required|string|max:60',
+        ]);
+        $folder = MediaFolder::slug($data['folder']);
+        // Make sure target folder exists in the index
+        MediaFolder::firstOrCreate(['name' => $folder]);
+        $updated = Media::whereIn('id', $data['ids'])->update(['folder' => $folder]);
+        return response()->json(['ok' => true, 'updated' => $updated, 'folder' => $folder]);
     }
 }

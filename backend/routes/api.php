@@ -439,11 +439,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('attachments/{attachment}',       [AttachmentController::class, 'destroy']);
 
     // ── Media library (slug-named images on the public disk) ──
-    Route::get('media',          [\App\Http\Controllers\Api\MediaController::class, 'index']);
-    Route::post('media/upload',  [\App\Http\Controllers\Api\MediaController::class, 'upload']);
-    Route::get('media/{id}',     [\App\Http\Controllers\Api\MediaController::class, 'show']);
-    Route::put('media/{id}',     [\App\Http\Controllers\Api\MediaController::class, 'update']);
-    Route::delete('media/{id}',  [\App\Http\Controllers\Api\MediaController::class, 'destroy']);
+    Route::get('media',                         [\App\Http\Controllers\Api\MediaController::class, 'index']);
+    Route::post('media/upload',                 [\App\Http\Controllers\Api\MediaController::class, 'upload']);
+    Route::post('media/bulk-move',              [\App\Http\Controllers\Api\MediaController::class, 'bulkMove']);
+    Route::get('media/folders',                 [\App\Http\Controllers\Api\MediaController::class, 'folders']);
+    Route::post('media/folders',                [\App\Http\Controllers\Api\MediaController::class, 'createFolder']);
+    Route::put('media/folders/{name}',          [\App\Http\Controllers\Api\MediaController::class, 'renameFolder']);
+    Route::delete('media/folders/{name}',       [\App\Http\Controllers\Api\MediaController::class, 'deleteFolder']);
+    Route::get('media/{id}',                    [\App\Http\Controllers\Api\MediaController::class, 'show'])->whereNumber('id');
+    Route::put('media/{id}',                    [\App\Http\Controllers\Api\MediaController::class, 'update'])->whereNumber('id');
+    Route::delete('media/{id}',                 [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->whereNumber('id');
 
     // ── Email (send PI/PV/etc. with attachments to suppliers, auditors) ──
     Route::post('email/send',       [EmailController::class, 'send']);
