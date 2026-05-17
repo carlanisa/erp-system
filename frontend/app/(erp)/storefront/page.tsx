@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
-  Palette, LayoutGrid,
+  Palette, LayoutGrid, Image as ImageIcon,
 } from 'lucide-react'
 
 const MODULES = [
@@ -15,6 +15,15 @@ const MODULES = [
     bg:    'bg-rose-50',
     border:'border-rose-300',
     desc:  'Shopify-style visual editor — edit theme + sections with live preview side-by-side. The fastest way to redesign your store.',
+  },
+  {
+    title: '🖼️ Media Library',
+    href:  '/storefront/media',
+    icon:  ImageIcon,
+    color: 'text-indigo-600',
+    bg:    'bg-indigo-50',
+    border:'border-indigo-200',
+    desc:  'Upload + manage every image used on your site. Clean slugified URLs, alt text, search, folders.',
   },
   {
     title: 'Theme Settings',
