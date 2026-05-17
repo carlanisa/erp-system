@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
-  Palette, LayoutGrid, Image as ImageIcon, FileText, Menu as MenuIcon, BarChart2,
+  Palette, LayoutGrid, Image as ImageIcon, FileText, Menu as MenuIcon, BarChart2, ShoppingBag,
 } from 'lucide-react'
 
 const MODULES = [
@@ -24,6 +24,15 @@ const MODULES = [
     bg:    'bg-indigo-50',
     border:'border-indigo-200',
     desc:  'Upload + manage every image used on your site. Clean slugified URLs, alt text, search, folders.',
+  },
+  {
+    title: '🛍️ Shopify Image Import',
+    href:  '/storefront/shopify-import',
+    icon:  ShoppingBag,
+    color: 'text-emerald-600',
+    bg:    'bg-emerald-50',
+    border:'border-emerald-200',
+    desc:  'Pull product images from your existing Shopify store directly into the ERP — matches by SKU.',
   },
   {
     title: '📑 Pages',
