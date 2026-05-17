@@ -438,6 +438,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download']);
     Route::delete('attachments/{attachment}',       [AttachmentController::class, 'destroy']);
 
+    // ── Media library (slug-named images on the public disk) ──
+    Route::get('media',          [\App\Http\Controllers\Api\MediaController::class, 'index']);
+    Route::post('media/upload',  [\App\Http\Controllers\Api\MediaController::class, 'upload']);
+    Route::get('media/{id}',     [\App\Http\Controllers\Api\MediaController::class, 'show']);
+    Route::put('media/{id}',     [\App\Http\Controllers\Api\MediaController::class, 'update']);
+    Route::delete('media/{id}',  [\App\Http\Controllers\Api\MediaController::class, 'destroy']);
+
     // ── Email (send PI/PV/etc. with attachments to suppliers, auditors) ──
     Route::post('email/send',       [EmailController::class, 'send']);
     Route::post('email/batch-send', [EmailController::class, 'batchSend']);
