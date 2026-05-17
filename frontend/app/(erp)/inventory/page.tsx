@@ -35,6 +35,7 @@ const REPORTS = [
   { label: 'Reorder Level Report',     href: '/inventory/reports/reorder',          icon: AlertCircle   },
   { label: 'Stock Valuation',          href: '/inventory/reports/valuation',        icon: BarChart2     },
   { label: 'Tailor WIP (At Tailor)',   href: '/inventory/reports/tailor-wip',       icon: Scissors      },
+  { label: 'Tailor Expense (Audit)',   href: '/inventory/reports/tailor-expense',   icon: Scissors      },
   { label: 'BOM Costing Report',       href: '/inventory/reports/bom-costing',      icon: GitBranch     },
   { label: 'Stock Card (per item)',    href: '/inventory/reports/stock-card',       icon: FileText      },
   { label: 'Receive vs Issue Summary', href: '/inventory/reports/receive-vs-issue', icon: ShoppingCart  },
