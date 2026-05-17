@@ -9,6 +9,9 @@ import { ImageText } from './ImageText'
 import { Testimonials } from './Testimonials'
 import { Newsletter } from './Newsletter'
 import { InstagramFeed } from './InstagramFeed'
+import { RichText } from './RichText'
+import { VideoBlock } from './VideoBlock'
+import { CountdownSale } from './CountdownSale'
 
 export function SectionRenderer({ section }: { section: SectionPayload }) {
   const c = section.config ?? {}
@@ -21,6 +24,9 @@ export function SectionRenderer({ section }: { section: SectionPayload }) {
     case 'testimonials':      return <Testimonials config={c} />
     case 'newsletter':        return <Newsletter config={c} />
     case 'instagram':         return <InstagramFeed config={c} />
+    case 'rich_text':         return <RichText config={c} />
+    case 'video':             return <VideoBlock config={c} />
+    case 'countdown':         return <CountdownSale config={c} />
     default:                  return null
   }
 }
