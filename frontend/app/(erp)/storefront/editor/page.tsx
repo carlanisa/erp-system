@@ -11,6 +11,8 @@ import {
   ChevronDown, ChevronUp, ArrowUp, ArrowDown, Eye, EyeOff, Plus, Trash2, X,
   Palette, Layers, Megaphone, Mail, Image as ImageIcon, LayoutGrid, ShoppingBag,
   FileText, Quote, Instagram, Sparkles, ExternalLink, Type, Video, Timer,
+  Columns2, Building2, Hash, Megaphone as MegaphoneIcon, ListChecks,
+  Workflow, Images, HelpCircle, MapPin, ArrowDownToLine, Minus,
 } from 'lucide-react'
 
 type Settings = Record<string, any>
@@ -20,21 +22,34 @@ type Device   = 'desktop' | 'tablet' | 'mobile'
 
 const BLOCK_GROUPS = [
   { group: 'Layout', items: [
-    { code: 'hero_slider',     name: 'Hero Slider',     icon: ImageIcon, desc: 'Full-width slides with headline + button' },
+    { code: 'hero_slider',     name: 'Hero Slider',     icon: ImageIcon,  desc: 'Full-width slides with headline + button' },
     { code: 'categories_grid', name: 'Categories Grid', icon: LayoutGrid, desc: 'Big image cards linking to categories' },
-    { code: 'banner_strip',    name: 'Banner Strip',    icon: Megaphone, desc: '4 selling-point icons' },
-    { code: 'image_text',      name: 'Image + Text',    icon: FileText,  desc: 'Side-by-side promo' },
+    { code: 'columns',         name: 'Columns',         icon: Columns2,   desc: '2 or 3 image+text cards side-by-side' },
+    { code: 'banner_strip',    name: 'Banner Strip',    icon: Megaphone,  desc: '4 selling-point icons in a strip' },
+    { code: 'image_text',      name: 'Image + Text',    icon: FileText,   desc: 'Side-by-side promo (one block)' },
+    { code: 'spacer',          name: 'Spacer',          icon: ArrowDownToLine, desc: 'Empty vertical space between sections' },
+    { code: 'divider',         name: 'Divider',         icon: Minus,      desc: 'Horizontal rule or ornament between sections' },
   ]},
   { group: 'Content', items: [
-    { code: 'rich_text',         name: 'Rich Text',         icon: Type,        desc: 'Title + body text block' },
-    { code: 'video',             name: 'Video',             icon: Video,       desc: 'Embed YouTube or MP4' },
-    { code: 'testimonials',      name: 'Testimonials',      icon: Quote,       desc: 'Customer reviews' },
-    { code: 'featured_products', name: 'Featured Products', icon: ShoppingBag, desc: 'Hand-picked product grid' },
+    { code: 'rich_text',         name: 'Rich Text',         icon: Type,         desc: 'Title + body text block (About / Policy)' },
+    { code: 'features_grid',     name: 'Features Grid',     icon: ListChecks,   desc: '3-6 features each with an icon + body' },
+    { code: 'steps',             name: 'Steps / Process',   icon: Workflow,     desc: 'Numbered how-it-works steps' },
+    { code: 'stats',             name: 'Stats / Numbers',   icon: Hash,         desc: 'Big numbers (10k+ customers, 5★ etc.)' },
+    { code: 'video',             name: 'Video',             icon: Video,        desc: 'Embed YouTube or MP4' },
+    { code: 'gallery',           name: 'Image Gallery',     icon: Images,       desc: 'Lightbox grid of images' },
+    { code: 'testimonials',      name: 'Testimonials',      icon: Quote,        desc: 'Customer reviews' },
+    { code: 'featured_products', name: 'Featured Products', icon: ShoppingBag,  desc: 'Hand-picked product grid' },
+    { code: 'faq',               name: 'FAQ Accordion',     icon: HelpCircle,   desc: 'Collapsible questions + answers' },
   ]},
   { group: 'Marketing', items: [
-    { code: 'countdown',  name: 'Countdown Sale', icon: Timer,     desc: 'Live countdown + CTA' },
-    { code: 'newsletter', name: 'Newsletter',     icon: Mail,      desc: 'Email signup CTA' },
-    { code: 'instagram',  name: 'Instagram Feed', icon: Instagram, desc: '6-image grid' },
+    { code: 'cta_banner', name: 'CTA Banner',     icon: MegaphoneIcon, desc: 'Full-width banner with headline + 2 buttons' },
+    { code: 'countdown',  name: 'Countdown Sale', icon: Timer,         desc: 'Live countdown + CTA' },
+    { code: 'newsletter', name: 'Newsletter',     icon: Mail,          desc: 'Email signup CTA' },
+    { code: 'instagram',  name: 'Instagram Feed', icon: Instagram,     desc: '6-image grid' },
+  ]},
+  { group: 'Trust', items: [
+    { code: 'logo_cloud',  name: 'Logo Cloud / Press', icon: Building2, desc: '"As featured in" or partner logos' },
+    { code: 'map',         name: 'Map / Location',     icon: MapPin,    desc: 'Google Maps embed for physical store' },
   ]},
 ]
 const BLOCK_BY_CODE: Record<string, any> = Object.fromEntries(BLOCK_GROUPS.flatMap((g) => g.items).map((b) => [b.code, b]))
@@ -608,6 +623,36 @@ function defaultConfig(type: string): any {
     case 'rich_text':         return { kicker: '', title: 'About us', body: 'Tell your story here…', align: 'center', max_width: 'normal' }
     case 'video':             return { url: '', title: '', subtitle: '', aspect: '16:9' }
     case 'countdown':         return { title: 'Limited-time offer', subtitle: 'Ends soon', ends_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16), button_text: 'Shop the sale', button_url: '/shop' }
+    case 'columns':           return { title: '', cols: 2, columns: [
+      { id: nextLocalId(), image: '', kicker: '', title: 'Card 1', body: '', button_text: '', button_url: '' },
+      { id: nextLocalId(), image: '', kicker: '', title: 'Card 2', body: '', button_text: '', button_url: '' },
+    ] }
+    case 'logo_cloud':        return { title: 'As featured in', logos: [{ id: nextLocalId(), image: '', name: '', url: '' }] }
+    case 'stats':             return { kicker: '', title: 'Why thousands choose us', items: [
+      { id: nextLocalId(), value: '10', suffix: 'k+', label: 'Happy customers' },
+      { id: nextLocalId(), value: '4.9', suffix: '★', label: 'Average rating' },
+      { id: nextLocalId(), value: '48', suffix: 'h', label: 'Avg dispatch time' },
+    ] }
+    case 'cta_banner':        return { background_image: '', kicker: '', title: 'Ready to shop?', subtitle: '', button_text: 'Shop Now', button_url: '/shop', secondary_button_text: '', secondary_button_url: '', align: 'center' }
+    case 'features_grid':     return { kicker: '', title: 'Why customers love us', subtitle: '', cols: 3, items: [
+      { id: nextLocalId(), icon: 'truck', title: 'Free shipping', body: 'On orders above RM150' },
+      { id: nextLocalId(), icon: 'shield', title: 'Secure checkout', body: 'Multiple payment options' },
+      { id: nextLocalId(), icon: 'gift', title: 'Easy returns', body: '14-day return policy' },
+    ] }
+    case 'steps':             return { kicker: '', title: 'How it works', subtitle: '', items: [
+      { id: nextLocalId(), title: 'Browse', body: 'Find pieces you love' },
+      { id: nextLocalId(), title: 'Add to cart', body: 'Try as many as you like' },
+      { id: nextLocalId(), title: 'Checkout', body: 'Pay safely in seconds' },
+      { id: nextLocalId(), title: 'Delivery', body: 'At your door in 2-3 days' },
+    ] }
+    case 'gallery':           return { title: 'Gallery', cols: 4, images: [] }
+    case 'faq':               return { title: 'Frequently asked questions', subtitle: '', items: [
+      { id: nextLocalId(), q: 'How long does shipping take?', a: '2-3 business days within Malaysia.' },
+      { id: nextLocalId(), q: 'What is your return policy?',  a: '14 days from delivery, unworn with tags.' },
+    ] }
+    case 'map':               return { title: 'Visit our store', address: 'Kuala Lumpur, Malaysia', embed_url: '', height: 360 }
+    case 'spacer':            return { height: 60, bg: 'page' }
+    case 'divider':           return { style: 'ornament', width: 'normal' }
     default: return {}
   }
 }
@@ -857,6 +902,271 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
           <div className="grid grid-cols-2 gap-2">
             <Input label="Button text" v={c.button_text} on={(v) => set('button_text', v)} />
             <Input label="Button URL" v={c.button_url} on={(v) => set('button_url', v)} />
+          </div>
+        </>
+      )}
+
+      {section.type === 'columns' && (() => {
+        const cols = ensureIds(c.columns ?? [])
+        return (
+          <>
+            <Input label="Title (optional)" v={c.title} on={(v) => set('title', v)} />
+            <Input label="Subtitle (optional)" v={c.subtitle} on={(v) => set('subtitle', v)} />
+            <div>
+              <label className="text-xs font-medium text-slate-600">Columns per row</label>
+              <select value={c.cols ?? 2} onChange={(e) => set('cols', Number(e.target.value))}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+                <option value={2}>2 columns</option><option value={3}>3 columns</option>
+              </select>
+            </div>
+            <BlockHeader title="Cards" onAdd={() => addArr('columns', { image: '', kicker: '', title: '', body: '', button_text: '', button_url: '' })} addLabel="Add card" />
+            <Sortable items={cols} onChange={(next) => set('columns', next)}>
+              {(col: any) => {
+                const i = cols.findIndex((x: any) => x.id === col.id)
+                return (
+                  <SubBlock onDelete={() => delArr('columns', i)} previewLabel={col.title || `Card ${i + 1}`}>
+                    <MediaPicker label="Image" value={col.image} folder="columns" onChange={(url) => updateArr('columns', i, { image: url })} />
+                    <Input label="Kicker" v={col.kicker} on={(v) => updateArr('columns', i, { kicker: v })} />
+                    <Input label="Title" v={col.title} on={(v) => updateArr('columns', i, { title: v })} />
+                    <Textarea label="Body" v={col.body} on={(v) => updateArr('columns', i, { body: v })} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input label="Button text" v={col.button_text} on={(v) => updateArr('columns', i, { button_text: v })} />
+                      <Input label="Button URL" v={col.button_url} on={(v) => updateArr('columns', i, { button_url: v })} />
+                    </div>
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'logo_cloud' && (() => {
+        const logos = ensureIds(c.logos ?? [])
+        return (
+          <>
+            <Input label="Heading (e.g. 'As featured in')" v={c.title} on={(v) => set('title', v)} />
+            <BlockHeader title="Logos" onAdd={() => addArr('logos', { image: '', name: '', url: '' })} addLabel="Add logo" />
+            <Sortable items={logos} onChange={(next) => set('logos', next)}>
+              {(l: any) => {
+                const i = logos.findIndex((x: any) => x.id === l.id)
+                return (
+                  <SubBlock onDelete={() => delArr('logos', i)} previewLabel={l.name || `Logo ${i + 1}`}>
+                    <MediaPicker label="Logo image" value={l.image} folder="logos" onChange={(url) => updateArr('logos', i, { image: url })} />
+                    <Input label="Name (for alt text)" v={l.name} on={(v) => updateArr('logos', i, { name: v })} />
+                    <Input label="Link URL (optional)" v={l.url} on={(v) => updateArr('logos', i, { url: v })} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'stats' && (() => {
+        const items = ensureIds(c.items ?? [])
+        return (
+          <>
+            <Input label="Kicker" v={c.kicker} on={(v) => set('kicker', v)} />
+            <Input label="Title" v={c.title} on={(v) => set('title', v)} />
+            <BlockHeader title="Numbers" onAdd={() => addArr('items', { value: '0', suffix: '', label: '' })} addLabel="Add number" />
+            <Sortable items={items} onChange={(next) => set('items', next)}>
+              {(s: any) => {
+                const i = items.findIndex((x: any) => x.id === s.id)
+                return (
+                  <SubBlock onDelete={() => delArr('items', i)} previewLabel={`${s.value}${s.suffix ?? ''} ${s.label}`}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input label="Value (number)" v={s.value} on={(v) => updateArr('items', i, { value: v })} />
+                      <Input label="Suffix (k+, ★, %, h)" v={s.suffix} on={(v) => updateArr('items', i, { suffix: v })} />
+                    </div>
+                    <Input label="Label" v={s.label} on={(v) => updateArr('items', i, { label: v })} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'cta_banner' && (
+        <>
+          <MediaPicker label="Background image (optional)" value={c.background_image} folder="cta" onChange={(url) => set('background_image', url)} />
+          <Input label="Kicker" v={c.kicker} on={(v) => set('kicker', v)} />
+          <Input label="Title" v={c.title} on={(v) => set('title', v)} />
+          <Textarea label="Subtitle" v={c.subtitle} on={(v) => set('subtitle', v)} />
+          <div className="grid grid-cols-2 gap-2">
+            <Input label="Primary button" v={c.button_text} on={(v) => set('button_text', v)} />
+            <Input label="Primary URL" v={c.button_url} on={(v) => set('button_url', v)} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Input label="Secondary button (optional)" v={c.secondary_button_text} on={(v) => set('secondary_button_text', v)} />
+            <Input label="Secondary URL" v={c.secondary_button_url} on={(v) => set('secondary_button_url', v)} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600">Align</label>
+            <select value={c.align ?? 'center'} onChange={(e) => set('align', e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+              <option value="left">Left</option><option value="center">Center</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      {section.type === 'features_grid' && (() => {
+        const items = ensureIds(c.items ?? [])
+        const ICONS = ['truck','gift','shield','phone','sparkles','star','heart','award','package','leaf','globe','zap','lock','clock','message','camera']
+        return (
+          <>
+            <Input label="Kicker" v={c.kicker} on={(v) => set('kicker', v)} />
+            <Input label="Title" v={c.title} on={(v) => set('title', v)} />
+            <Textarea label="Subtitle" v={c.subtitle} on={(v) => set('subtitle', v)} />
+            <div>
+              <label className="text-xs font-medium text-slate-600">Columns</label>
+              <select value={c.cols ?? 3} onChange={(e) => set('cols', Number(e.target.value))}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+                <option value={2}>2</option><option value={3}>3</option><option value={4}>4</option>
+              </select>
+            </div>
+            <BlockHeader title="Features" onAdd={() => addArr('items', { icon: 'sparkles', title: '', body: '' })} addLabel="Add feature" />
+            <Sortable items={items} onChange={(next) => set('items', next)}>
+              {(it: any) => {
+                const i = items.findIndex((x: any) => x.id === it.id)
+                return (
+                  <SubBlock onDelete={() => delArr('items', i)} previewLabel={it.title || `Feature ${i + 1}`}>
+                    <div>
+                      <label className="text-xs font-medium text-slate-600">Icon</label>
+                      <select value={it.icon ?? 'sparkles'} onChange={(e) => updateArr('items', i, { icon: e.target.value })}
+                        className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-xs">
+                        {ICONS.map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select>
+                    </div>
+                    <Input label="Title" v={it.title} on={(v) => updateArr('items', i, { title: v })} />
+                    <Textarea label="Body" v={it.body} on={(v) => updateArr('items', i, { body: v })} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'steps' && (() => {
+        const items = ensureIds(c.items ?? [])
+        return (
+          <>
+            <Input label="Kicker" v={c.kicker} on={(v) => set('kicker', v)} />
+            <Input label="Title" v={c.title} on={(v) => set('title', v)} />
+            <Textarea label="Subtitle" v={c.subtitle} on={(v) => set('subtitle', v)} />
+            <BlockHeader title="Steps" onAdd={() => addArr('items', { title: '', body: '' })} addLabel="Add step" />
+            <Sortable items={items} onChange={(next) => set('items', next)}>
+              {(s: any) => {
+                const i = items.findIndex((x: any) => x.id === s.id)
+                return (
+                  <SubBlock onDelete={() => delArr('items', i)} previewLabel={`Step ${i + 1}: ${s.title || ''}`}>
+                    <Input label="Title" v={s.title} on={(v) => updateArr('items', i, { title: v })} />
+                    <Textarea label="Body" v={s.body} on={(v) => updateArr('items', i, { body: v })} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'gallery' && (() => {
+        const imgs = ensureIds(c.images ?? [])
+        return (
+          <>
+            <Input label="Title (optional)" v={c.title} on={(v) => set('title', v)} />
+            <div>
+              <label className="text-xs font-medium text-slate-600">Columns</label>
+              <select value={c.cols ?? 4} onChange={(e) => set('cols', Number(e.target.value))}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+                <option value={3}>3</option><option value={4}>4</option><option value={5}>5</option>
+              </select>
+            </div>
+            <BlockHeader title="Images" onAdd={() => addArr('images', { src: '', alt: '', caption: '' })} addLabel="Add image" />
+            <Sortable items={imgs} onChange={(next) => set('images', next)}>
+              {(img: any) => {
+                const i = imgs.findIndex((x: any) => x.id === img.id)
+                return (
+                  <SubBlock onDelete={() => delArr('images', i)} previewLabel={img.alt || `Image ${i + 1}`}>
+                    <MediaPicker label="Image" value={img.src} folder="gallery" onChange={(url) => updateArr('images', i, { src: url })} />
+                    <Input label="Alt text" v={img.alt} on={(v) => updateArr('images', i, { alt: v })} />
+                    <Input label="Caption (shown in lightbox)" v={img.caption} on={(v) => updateArr('images', i, { caption: v })} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'faq' && (() => {
+        const items = ensureIds(c.items ?? [])
+        return (
+          <>
+            <Input label="Title" v={c.title} on={(v) => set('title', v)} />
+            <Input label="Subtitle" v={c.subtitle} on={(v) => set('subtitle', v)} />
+            <BlockHeader title="Q & A" onAdd={() => addArr('items', { q: '', a: '' })} addLabel="Add question" />
+            <Sortable items={items} onChange={(next) => set('items', next)}>
+              {(it: any) => {
+                const i = items.findIndex((x: any) => x.id === it.id)
+                return (
+                  <SubBlock onDelete={() => delArr('items', i)} previewLabel={it.q || `Q ${i + 1}`}>
+                    <Input label="Question" v={it.q} on={(v) => updateArr('items', i, { q: v })} />
+                    <Textarea label="Answer" v={it.a} on={(v) => updateArr('items', i, { a: v })} rows={3} />
+                  </SubBlock>
+                )
+              }}
+            </Sortable>
+          </>
+        )
+      })()}
+
+      {section.type === 'map' && (
+        <>
+          <Input label="Title (optional)" v={c.title} on={(v) => set('title', v)} />
+          <Input label="Address (e.g. Lot 123, Jln Bukit Bintang, KL)" v={c.address} on={(v) => set('address', v)} />
+          <Input label="Or paste a Google Maps embed URL (optional)" v={c.embed_url} on={(v) => set('embed_url', v)} />
+          <Input label="Map height (px)" v={c.height ?? 360} on={(v) => set('height', Number(v))} />
+        </>
+      )}
+
+      {section.type === 'spacer' && (
+        <>
+          <Input label="Height in pixels (8 - 400)" v={c.height ?? 60} on={(v) => set('height', Number(v))} />
+          <div>
+            <label className="text-xs font-medium text-slate-600">Background</label>
+            <select value={c.bg ?? 'page'} onChange={(e) => set('bg', e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+              <option value="page">Page background</option>
+              <option value="surface">Surface (white)</option>
+              <option value="primary">Primary brand color</option>
+              <option value="transparent">Transparent</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      {section.type === 'divider' && (
+        <>
+          <div>
+            <label className="text-xs font-medium text-slate-600">Style</label>
+            <select value={c.style ?? 'ornament'} onChange={(e) => set('style', e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+              <option value="solid">Solid line</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="ornament">Ornament ✦</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600">Width</label>
+            <select value={c.width ?? 'normal'} onChange={(e) => set('width', e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+              <option value="narrow">Narrow</option><option value="normal">Normal</option><option value="wide">Wide</option>
+            </select>
           </div>
         </>
       )}
