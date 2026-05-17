@@ -543,6 +543,32 @@ export default function ThemeEditorPage() {
               <MediaPicker label="Logo" value={settings.logo_url} folder="theme" onChange={(url) => setSettings({ ...settings, logo_url: url })} />
               <MediaPicker label="Favicon" value={settings.favicon_url} folder="theme" onChange={(url) => setSettings({ ...settings, favicon_url: url })} />
               <Input label="Currency display" v={settings.currency_display} on={(v) => setSettings({ ...settings, currency_display: v })} />
+
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <label className="text-xs font-medium text-slate-600">Default language</label>
+                <select value={settings.default_language ?? 'en'} onChange={(e) => setSettings({ ...settings, default_language: e.target.value })}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm">
+                  {['en','ms','zh','ta','ar','id'].map((c) => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                </select>
+                <div className="mt-2">
+                  <label className="text-xs font-medium text-slate-600">Enabled languages (show language switcher in header)</label>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {['en','ms','zh','ta','ar','id'].map((c) => {
+                      const enabled = (settings.enabled_languages ?? []).includes(c)
+                      return (
+                        <button key={c} onClick={() => {
+                          const cur: string[] = settings.enabled_languages ?? []
+                          const next = enabled ? cur.filter((x) => x !== c) : [...cur, c]
+                          setSettings({ ...settings, enabled_languages: next })
+                        }}
+                          className={`rounded-full px-3 py-1 text-xs font-mono ${enabled ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                          {c.toUpperCase()}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </Panel>
 

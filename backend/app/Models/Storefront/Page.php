@@ -10,7 +10,7 @@ class Page extends Model
     protected $table = 'storefront_pages';
 
     protected $fillable = [
-        'slug', 'title', 'meta_title', 'meta_description',
+        'slug', 'title', 'meta_title', 'meta_description', 'og_image_url', 'language',
         'is_home', 'is_published', 'sort_order',
     ];
 

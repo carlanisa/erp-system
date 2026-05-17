@@ -549,6 +549,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('section-templates',                 [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'store']);
         Route::post('section-templates/{id}/apply',      [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'apply']);
         Route::delete('section-templates/{id}',          [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'destroy']);
+
+        // Navigation (header + footer menus)
+        Route::get('menus',                              [\App\Http\Controllers\Storefront\Admin\MenusController::class, 'index']);
+        Route::post('menus/{menuId}/items',              [\App\Http\Controllers\Storefront\Admin\MenusController::class, 'storeItem']);
+        Route::put('menu-items/{id}',                    [\App\Http\Controllers\Storefront\Admin\MenusController::class, 'updateItem']);
+        Route::delete('menu-items/{id}',                 [\App\Http\Controllers\Storefront\Admin\MenusController::class, 'deleteItem']);
+        Route::post('menus/{menuId}/reorder',            [\App\Http\Controllers\Storefront\Admin\MenusController::class, 'reorderItems']);
+
+        // Page analytics
+        Route::get('analytics/summary',                  [\App\Http\Controllers\Storefront\Admin\PageAnalyticsController::class, 'summary']);
+        Route::get('analytics/page/{slug}',              [\App\Http\Controllers\Storefront\Admin\PageAnalyticsController::class, 'forPage']);
     });
 });
 
@@ -586,6 +597,8 @@ Route::prefix('storefront')->group(function () {
     // Theme + dynamic homepage sections + custom pages
     Route::get('theme', [\App\Http\Controllers\Storefront\ThemeController::class, 'theme']);
     Route::get('pages/{slug}', [\App\Http\Controllers\Storefront\ThemeController::class, 'page']);
+    Route::get('nav', [\App\Http\Controllers\Storefront\NavController::class, 'menus']);
+    Route::post('track/page-view', [\App\Http\Controllers\Storefront\NavController::class, 'track']);
 
     Route::get('suggestions/cart', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forCart']);
     Route::get('suggestions/product/{productId}', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forProduct']);

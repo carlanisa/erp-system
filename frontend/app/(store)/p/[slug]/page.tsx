@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { fetchPage, type ThemePayload } from '@/lib/storefront-theme'
 import { SectionRenderer } from '@/components/storefront/sections/SectionRenderer'
 import { useStoreTheme } from '@/components/storefront/ThemeProvider'
+import { SeoHead } from '@/components/storefront/SeoHead'
+import { trackPageView } from '@/lib/storefront-nav'
 
 export default function CustomPage() {
   const params = useParams<{ slug: string }>()
@@ -21,6 +23,7 @@ export default function CustomPage() {
     fetchPage(slug).then((p) => {
       if (!p) setNotFound(true)
       setPage(p)
+      if (p?.page) trackPageView({ page_slug: p.page.slug, page_id: p.page.id })
     }).finally(() => setLoading(false))
   }, [slug])
 
@@ -67,6 +70,7 @@ export default function CustomPage() {
 
   return (
     <div>
+      <SeoHead page={page.page} settings={page.settings} />
       {page.sections.map((s) => <SectionRenderer key={s.id} section={s} />)}
     </div>
   )

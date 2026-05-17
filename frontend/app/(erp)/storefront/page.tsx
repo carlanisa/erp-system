@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Globe, BookMarked, Truck, CreditCard, MessageSquare, ShoppingCart, Package, Gift, Layers, Sparkles,
-  Palette, LayoutGrid, Image as ImageIcon, FileText,
+  Palette, LayoutGrid, Image as ImageIcon, FileText, Menu as MenuIcon, BarChart2,
 } from 'lucide-react'
 
 const MODULES = [
@@ -32,7 +32,25 @@ const MODULES = [
     color: 'text-cyan-600',
     bg:    'bg-cyan-50',
     border:'border-cyan-200',
-    desc:  'Create About us, Shipping, FAQ, etc. Each page has its own URL + sections.',
+    desc:  'Create About us, Shipping, FAQ, etc. Each page has its own URL + sections + SEO + language.',
+  },
+  {
+    title: '🧭 Navigation',
+    href:  '/storefront/menus',
+    icon:  MenuIcon,
+    color: 'text-sky-600',
+    bg:    'bg-sky-50',
+    border:'border-sky-200',
+    desc:  'Edit header + footer menu links — to pages, products, categories, or custom URLs.',
+  },
+  {
+    title: '📊 Analytics',
+    href:  '/storefront/analytics',
+    icon:  BarChart2,
+    color: 'text-emerald-600',
+    bg:    'bg-emerald-50',
+    border:'border-emerald-200',
+    desc:  'Page views, traffic source, top pages, referrers, UTM campaigns.',
   },
   {
     title: 'Theme Settings',

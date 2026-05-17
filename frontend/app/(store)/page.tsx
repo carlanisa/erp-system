@@ -1,10 +1,14 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useStoreTheme } from '@/components/storefront/ThemeProvider'
 import { SectionRenderer } from '@/components/storefront/sections/SectionRenderer'
+import { SeoHead } from '@/components/storefront/SeoHead'
+import { trackPageView } from '@/lib/storefront-nav'
 
 export default function HomePage() {
   const { theme, loading } = useStoreTheme()
+  useEffect(() => { trackPageView({ page_slug: 'home', page_id: theme?.page?.id ?? null }) }, [theme?.page?.id])
 
   if (loading && !theme) {
     return (
@@ -25,6 +29,7 @@ export default function HomePage() {
 
   return (
     <div>
+      <SeoHead page={theme.page} settings={theme.settings} />
       {theme.sections.map((s) => (
         <SectionRenderer key={s.id} section={s} />
       ))}

@@ -41,6 +41,8 @@ class ThemeSettingsController extends Controller
             'newsletter_popup_enabled' => 'nullable|boolean',
             'currency_display' => 'nullable|string|max:8',
             'extra_json'       => 'nullable|array',
+            'enabled_languages' => 'nullable|array',
+            'default_language' => 'nullable|string|max:8',
         ]);
         $row = ThemeSetting::current();
         $row->update($data);
