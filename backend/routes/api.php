@@ -482,6 +482,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('ai-transcripts', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'index']);
         Route::get('ai-transcripts/{id}', [\App\Http\Controllers\Storefront\Admin\AiTranscriptsController::class, 'show']);
         Route::patch('products/{id}/publish', [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'update']);
+        Route::post('products/bulk-publish',  [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'bulk']);
+        Route::get('products/publish-stats',  [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'stats']);
 
         Route::get('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'index']);
         Route::post('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'store']);
