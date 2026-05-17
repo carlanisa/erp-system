@@ -11,15 +11,22 @@ class CatalogController extends Controller
 {
     public function products(Request $request)
     {
-        $q = Product::query()
-            ->where('publish_to_website', true)
-            ->where('is_active', true);
+        // is_active filter dropped — bulk publish auto-activates products,
+        // and being too strict here was hiding everything legitimately published.
+        $q = Product::query()->where('publish_to_website', true);
 
         if ($category = $request->query('category')) {
-            $q->where('category', $category);
+            // Be lenient: admin may have stored "Baju Kurung" but the link uses
+            // /collections/baju-kurung, so match name OR slug OR substring.
+            $catLower = strtolower(str_replace('-', ' ', $category));
+            $q->where(function ($x) use ($category, $catLower) {
+                $x->where('category', $category)
+                  ->orWhereRaw('LOWER(category) = ?', [$catLower])
+                  ->orWhere('category', 'ILIKE', '%' . $catLower . '%');
+            });
         }
         if ($search = $request->query('q')) {
-            $q->where('name', 'like', "%{$search}%");
+            $q->where('name', 'ILIKE', "%{$search}%");
         }
         if ($color = $request->query('color')) {
             $q->where('color', $color);
@@ -41,7 +48,6 @@ class CatalogController extends Controller
     {
         $product = Product::with('variants')
             ->where('publish_to_website', true)
-            ->where('is_active', true)
             ->where(function ($q) use ($slug) {
                 $q->where('seo_slug', $slug)->orWhere('id', $slug);
             })

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { formatMYR } from '@/lib/storefront-api'
+import { formatMYR, imageSrc } from '@/lib/storefront-api'
 
 export type StoreProduct = {
   id: number
@@ -21,6 +21,9 @@ export function ProductCard({ product }: { product: StoreProduct }) {
   const href = `/products/${product.seo_slug || product.id}`
   const onSale =
     product.original_price && product.original_price > product.sale_price ? true : false
+  // Stable color from name → polished placeholder when no image yet
+  const initials = (product.name || '?').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+  const hue = Array.from(product.name ?? '').reduce((a, c) => a + c.charCodeAt(0), 0) % 360
 
   return (
     <Link href={href} className="group block">
@@ -28,13 +31,15 @@ export function ProductCard({ product }: { product: StoreProduct }) {
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={img}
+            src={imageSrc(img)}
             alt={product.name}
             className="h-full w-full object-cover transition group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-400">
-            No image
+          <div className="flex h-full w-full flex-col items-center justify-center text-white"
+               style={{ background: `linear-gradient(135deg, hsl(${hue}, 45%, 70%), hsl(${(hue + 30) % 360}, 50%, 55%))` }}>
+            <span className="text-3xl font-semibold opacity-95" style={{ fontFamily: 'var(--brand-font-heading)' }}>{initials}</span>
+            <span className="mt-1 text-[10px] uppercase tracking-widest opacity-80">Photo coming soon</span>
           </div>
         )}
         <div className="absolute left-2 top-2 flex flex-col gap-1">

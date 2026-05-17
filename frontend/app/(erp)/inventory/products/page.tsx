@@ -10,6 +10,7 @@ import {
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '@/lib/utils'
+import { PublishToWebTools } from '@/components/storefront/PublishToWebTools'
 
 type ProductType = 'apparel' | 'fabric' | 'accessory' | 'service' | 'raw_material'
 type Variant = {
@@ -1178,6 +1179,8 @@ export default function ProductsPage() {
           {' '}record{filteredRecords.length!==1?'s':''}
         </div>
       </div>
+
+      <PublishToWebTools filteredIds={filteredRecords.map((r: any) => r.id)} onChanged={load} />
 
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs border-collapse">
