@@ -53,3 +53,15 @@ storefrontApi.interceptors.response.use(
 
 export const formatMYR = (n: number) =>
   `RM${(n ?? 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+/**
+ * Resolve an image URL for <img src>. Uploaded media is stored at /storage/...
+ * on the Laravel host; since the frontend may be on a different origin, we
+ * prefix those URLs with BASE_URL. Absolute URLs (https://...) are left alone.
+ */
+export function imageSrc(url: string | null | undefined): string {
+  if (!url) return ''
+  if (/^https?:/i.test(url)) return url
+  if (url.startsWith('/storage')) return `${BASE_URL}${url}`
+  return url
+}

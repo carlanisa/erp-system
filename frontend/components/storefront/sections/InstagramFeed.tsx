@@ -1,6 +1,7 @@
 'use client'
 
 import { Instagram } from 'lucide-react'
+import { imageSrc } from '@/lib/storefront-api'
 
 export function InstagramFeed({ config }: { config: { handle?: string; images: string[] } }) {
   const images = config.images ?? []
@@ -18,7 +19,7 @@ export function InstagramFeed({ config }: { config: { handle?: string; images: s
             <a key={i} href={config.handle ? `https://instagram.com/${config.handle}` : '#'} target="_blank" rel="noopener noreferrer"
               className="group relative aspect-square overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+              <img src={imageSrc(src)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
                 <Instagram className="h-6 w-6 text-white opacity-0 transition group-hover:opacity-100" />
               </div>

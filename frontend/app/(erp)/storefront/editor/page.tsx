@@ -5,6 +5,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
 import { Sortable } from '@/components/ui/Sortable'
+import { MediaPicker } from '@/components/ui/MediaPicker'
 import {
   ArrowLeft, Monitor, Tablet, Smartphone, RefreshCw, Save, RotateCcw,
   ChevronDown, ChevronUp, ArrowUp, ArrowDown, Eye, EyeOff, Plus, Trash2, X,
@@ -269,8 +270,8 @@ export default function ThemeEditorPage() {
             <div className="space-y-3">
               <Input label="Brand name" v={settings.brand_name} on={(v) => setSettings({ ...settings, brand_name: v })} />
               <Input label="Tagline" v={settings.brand_tagline} on={(v) => setSettings({ ...settings, brand_tagline: v })} />
-              <Input label="Logo URL" v={settings.logo_url} on={(v) => setSettings({ ...settings, logo_url: v })} />
-              <Input label="Favicon URL" v={settings.favicon_url} on={(v) => setSettings({ ...settings, favicon_url: v })} />
+              <MediaPicker label="Logo" value={settings.logo_url} folder="theme" onChange={(url) => setSettings({ ...settings, logo_url: url })} />
+              <MediaPicker label="Favicon" value={settings.favicon_url} folder="theme" onChange={(url) => setSettings({ ...settings, favicon_url: url })} />
               <Input label="Currency display" v={settings.currency_display} on={(v) => setSettings({ ...settings, currency_display: v })} />
             </div>
           </Panel>
@@ -494,7 +495,7 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
                 const i = slides.findIndex((x: any) => x.id === sl.id)
                 return (
                   <SubBlock onDelete={() => delArr('slides', i)} previewLabel={sl.headline || `Slide ${i+1}`}>
-                    <Input label="Image URL" v={sl.image} on={(v) => updateArr('slides', i, { image: v })} />
+                    <MediaPicker label="Slide image" value={sl.image} folder="hero" onChange={(url) => updateArr('slides', i, { image: url })} />
                     <Input label="Kicker" v={sl.kicker} on={(v) => updateArr('slides', i, { kicker: v })} />
                     <Input label="Headline" v={sl.headline} on={(v) => updateArr('slides', i, { headline: v })} />
                     <Textarea label="Subheading" v={sl.subheading} on={(v) => updateArr('slides', i, { subheading: v })} />
@@ -539,7 +540,7 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
                 return (
                   <SubBlock onDelete={() => delArr('categories', i)} previewLabel={cat.name || `Category ${i+1}`}>
                     <Input label="Name" v={cat.name} on={(v) => updateArr('categories', i, { name: v })} />
-                    <Input label="Image URL" v={cat.image} on={(v) => updateArr('categories', i, { image: v })} />
+                    <MediaPicker label="Category image" value={cat.image} folder="categories" onChange={(url) => updateArr('categories', i, { image: url })} />
                     <Input label="Link URL" v={cat.url} on={(v) => updateArr('categories', i, { url: v })} />
                   </SubBlock>
                 )
@@ -588,7 +589,7 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
 
       {section.type === 'image_text' && (
         <>
-          <Input label="Image URL" v={c.image} on={(v) => set('image', v)} />
+          <MediaPicker label="Image" value={c.image} folder="image-text" onChange={(url) => set('image', url)} />
           <div>
             <label className="text-xs font-medium text-slate-600">Image position</label>
             <select value={c.image_position ?? 'left'} onChange={(e) => set('image_position', e.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
@@ -646,9 +647,9 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
                 const i = imagesWithIds.findIndex((x: any) => x.id === img.id)
                 return (
                   <SubBlock onDelete={() => delArr('images', i)} previewLabel={`Image ${i+1}`}>
-                    <Input label="Image URL" v={img.src ?? ''}
-                      on={(v) => {
-                        const arr = imagesWithIds.map((x: any, j: number) => j === i ? { ...x, src: v } : x)
+                    <MediaPicker label="Image" value={img.src ?? ''} folder="instagram"
+                      onChange={(url) => {
+                        const arr = imagesWithIds.map((x: any, j: number) => j === i ? { ...x, src: url } : x)
                         set('images', arr.map((x: any) => x.src ?? ''))
                       }} />
                   </SubBlock>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { imageSrc } from '@/lib/storefront-api'
 
 export function ImageText({ config }: { config: { image: string; image_position?: 'left' | 'right'; kicker?: string; title: string; body: string; button_text?: string; button_url?: string } }) {
   const right = config.image_position === 'right'
@@ -9,7 +10,7 @@ export function ImageText({ config }: { config: { image: string; image_position?
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 px-6 md:grid-cols-2 md:gap-16">
         <div className={right ? 'md:order-2' : ''}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={config.image} alt={config.title} className="aspect-[4/5] w-full rounded-2xl object-cover shadow-sm" />
+          <img src={imageSrc(config.image)} alt={config.title} className="aspect-[4/5] w-full rounded-2xl object-cover shadow-sm" />
         </div>
         <div>
           {config.kicker && (

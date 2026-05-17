@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { imageSrc } from '@/lib/storefront-api'
 
 type Slide = {
   image: string
@@ -38,7 +39,7 @@ export function HeroSlider({ config }: { config: { slides: Slide[]; autoplay?: b
           className={`absolute inset-0 transition-opacity duration-700 ${i === active ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={sl.image} alt={sl.headline} className="absolute inset-0 h-full w-full object-cover" />
+          <img src={imageSrc(sl.image)} alt={sl.headline} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${sl.overlay ?? 0.35})` }} />
         </div>
       ))}
