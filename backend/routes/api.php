@@ -485,6 +485,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('products/bulk-publish',  [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'bulk']);
         Route::get('products/publish-stats',  [\App\Http\Controllers\Storefront\Admin\ProductPublishController::class, 'stats']);
 
+        // Shopify image import
+        Route::get('shopify/settings',          [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'settings']);
+        Route::put('shopify/settings',          [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'updateSettings']);
+        Route::post('shopify/test',             [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'test']);
+        Route::post('shopify/scan',             [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'scan']);
+        Route::post('shopify/import',           [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'importChunk']);
+        Route::post('shopify/reset-counter',    [\App\Http\Controllers\Storefront\Admin\ShopifyImportController::class, 'resetCounter']);
+
         Route::get('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'index']);
         Route::post('coupons', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'store']);
         Route::put('coupons/{id}', [\App\Http\Controllers\Storefront\Admin\CouponsController::class, 'update']);
