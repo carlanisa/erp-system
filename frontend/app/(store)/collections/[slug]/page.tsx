@@ -10,21 +10,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   'new-arrivals': 'New Arrivals',
 }
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
+export default function CategoryPage({ params }: { params: { slug: string } }) {
   const [items, setItems] = useState<StoreProduct[]>([])
   const [loading, setLoading] = useState(true)
-  const label = CATEGORY_LABELS[params.category] ?? params.category
+  const label = CATEGORY_LABELS[params.slug] ?? params.slug
 
   useEffect(() => {
     const requestParams: any = { limit: 48 }
-    if (params.category === 'new-arrivals') requestParams.is_new_arrival = 1
-    else requestParams.category = params.category
+    if (params.slug === 'new-arrivals') requestParams.is_new_arrival = 1
+    else requestParams.category = params.slug
 
     storefrontApi.get('/products', { params: requestParams })
       .then(({ data }) => setItems(data?.data ?? []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
-  }, [params.category])
+  }, [params.slug])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">

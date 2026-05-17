@@ -103,7 +103,7 @@ export function StoreAiChat() {
                       {m.products.slice(0, 4).map((p) => (
                         <a
                           key={p.id}
-                          href={`/product/${p.slug}`}
+                          href={`/products/${p.slug}`}
                           className="block overflow-hidden rounded-lg border border-neutral-200 bg-white hover:border-rose-300"
                         >
                           <div className="aspect-square bg-neutral-100">

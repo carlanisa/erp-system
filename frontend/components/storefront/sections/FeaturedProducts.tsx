@@ -29,7 +29,7 @@ export function FeaturedProducts({ config }: { config: { title?: string; subtitl
             const onSale = p.original_price !== null && p.original_price > p.price
             const off = onSale ? Math.round(((p.original_price! - p.price) / p.original_price!) * 100) : 0
             return (
-              <Link key={p.id} href={`/product/${p.slug}`} className="group block">
+              <Link key={p.id} href={`/products/${p.slug}`} className="group block">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-neutral-100">
                   {p.image && (
                     // eslint-disable-next-line @next/next/no-img-element
