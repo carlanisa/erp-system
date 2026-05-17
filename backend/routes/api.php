@@ -535,6 +535,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('custom-themes',             [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'saveCurrent']);
         Route::post('custom-themes/{id}/apply',  [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'applyCustom']);
         Route::delete('custom-themes/{id}',      [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'deleteCustom']);
+
+        // Pages (multi-page support)
+        Route::get('pages',                      [\App\Http\Controllers\Storefront\Admin\PagesController::class, 'index']);
+        Route::get('pages/{id}',                 [\App\Http\Controllers\Storefront\Admin\PagesController::class, 'show']);
+        Route::post('pages',                     [\App\Http\Controllers\Storefront\Admin\PagesController::class, 'store']);
+        Route::put('pages/{id}',                 [\App\Http\Controllers\Storefront\Admin\PagesController::class, 'update']);
+        Route::delete('pages/{id}',              [\App\Http\Controllers\Storefront\Admin\PagesController::class, 'destroy']);
+
+        // Section templates (re-usable block bundles)
+        Route::get('section-templates',                  [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'index']);
+        Route::get('section-templates/{id}',             [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'show']);
+        Route::post('section-templates',                 [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'store']);
+        Route::post('section-templates/{id}/apply',      [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'apply']);
+        Route::delete('section-templates/{id}',          [\App\Http\Controllers\Storefront\Admin\SectionTemplatesController::class, 'destroy']);
     });
 });
 
@@ -569,8 +583,9 @@ Route::prefix('storefront')->group(function () {
     Route::get('bundles/for-product/{productId}', [\App\Http\Controllers\Storefront\BundleController::class, 'forProduct']);
     Route::post('bundles/{id}/add-to-cart', [\App\Http\Controllers\Storefront\BundleController::class, 'addToCart']);
 
-    // Theme + dynamic homepage sections
+    // Theme + dynamic homepage sections + custom pages
     Route::get('theme', [\App\Http\Controllers\Storefront\ThemeController::class, 'theme']);
+    Route::get('pages/{slug}', [\App\Http\Controllers\Storefront\ThemeController::class, 'page']);
 
     Route::get('suggestions/cart', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forCart']);
     Route::get('suggestions/product/{productId}', [\App\Http\Controllers\Storefront\SuggestionsController::class, 'forProduct']);

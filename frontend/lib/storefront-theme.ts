@@ -33,6 +33,9 @@ export type SectionPayload = {
     | 'hero_slider' | 'categories_grid' | 'featured_products' | 'banner_strip'
     | 'image_text' | 'testimonials' | 'newsletter' | 'instagram'
     | 'lookbook' | 'faq' | 'countdown' | 'rich_text'
+    | 'columns' | 'logo_cloud' | 'stats' | 'cta_banner' | 'features_grid'
+    | 'steps' | 'gallery' | 'map' | 'spacer' | 'divider' | 'video'
+    | 'product_showcase' | 'html'
   label: string | null
   config: any
 }
@@ -42,7 +45,13 @@ export type AnnouncementBarPayload = {
   bg_color: string; text_color: string
 }
 
+export type StorePage = {
+  id: number; slug: string; title: string
+  meta_title: string | null; meta_description: string | null; is_home: boolean
+}
+
 export type ThemePayload = {
+  page?: StorePage
   settings: ThemeSettings
   sections: SectionPayload[]
   announcement: AnnouncementBarPayload | null
@@ -51,6 +60,15 @@ export type ThemePayload = {
 export async function fetchTheme(): Promise<ThemePayload | null> {
   try {
     const { data } = await storefrontApi.get('/theme')
+    return data as ThemePayload
+  } catch {
+    return null
+  }
+}
+
+export async function fetchPage(slug: string): Promise<ThemePayload | null> {
+  try {
+    const { data } = await storefrontApi.get(`/pages/${encodeURIComponent(slug)}`)
     return data as ThemePayload
   } catch {
     return null

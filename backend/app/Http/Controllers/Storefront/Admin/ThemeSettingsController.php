@@ -86,15 +86,25 @@ class ThemeSettingsController extends Controller
     }
 
     // ── Sections ───────────────────────────────────────────────────────
-    public function sections()
+    public function sections(Request $request)
     {
-        return response()->json(Section::orderBy('position')->get());
+        $pageId = $request->query('page_id');
+        if (!$pageId) {
+            $pageId = \App\Models\Storefront\Page::home()->id;
+        }
+        return response()->json(
+            Section::where('page_id', $pageId)->orderBy('position')->get()
+        );
     }
 
     public function storeSection(Request $request)
     {
         $data = $this->sectionPayload($request, true);
-        $data['position'] = $data['position'] ?? ((Section::max('position') ?? 0) + 1);
+        if (empty($data['page_id'])) {
+            $data['page_id'] = \App\Models\Storefront\Page::home()->id;
+        }
+        $maxPos = Section::where('page_id', $data['page_id'])->max('position') ?? 0;
+        $data['position'] = $data['position'] ?? ($maxPos + 1);
         return response()->json(Section::create($data), 201);
     }
 
@@ -123,6 +133,7 @@ class ThemeSettingsController extends Controller
     private function sectionPayload(Request $request, bool $creating): array
     {
         return $request->validate([
+            'page_id'  => 'nullable|integer|exists:storefront_pages,id',
             'type'     => ($creating ? 'required' : 'nullable') . '|string|max:30',
             'label'    => 'nullable|string|max:120',
             'position' => 'nullable|integer',

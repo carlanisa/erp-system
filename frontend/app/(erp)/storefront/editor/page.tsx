@@ -13,6 +13,7 @@ import {
   FileText, Quote, Instagram, Sparkles, ExternalLink, Type, Video, Timer,
   Columns2, Building2, Hash, Megaphone as MegaphoneIcon, ListChecks,
   Workflow, Images, HelpCircle, MapPin, ArrowDownToLine, Minus,
+  Package, Code2, FilePlus, BookmarkPlus,
 } from 'lucide-react'
 
 type Settings = Record<string, any>
@@ -39,6 +40,7 @@ const BLOCK_GROUPS = [
     { code: 'gallery',           name: 'Image Gallery',     icon: Images,       desc: 'Lightbox grid of images' },
     { code: 'testimonials',      name: 'Testimonials',      icon: Quote,        desc: 'Customer reviews' },
     { code: 'featured_products', name: 'Featured Products', icon: ShoppingBag,  desc: 'Hand-picked product grid' },
+    { code: 'product_showcase',  name: 'Product Showcase',  icon: Package,      desc: 'Big single-product hero with image + buy CTA' },
     { code: 'faq',               name: 'FAQ Accordion',     icon: HelpCircle,   desc: 'Collapsible questions + answers' },
   ]},
   { group: 'Marketing', items: [
@@ -50,6 +52,9 @@ const BLOCK_GROUPS = [
   { group: 'Trust', items: [
     { code: 'logo_cloud',  name: 'Logo Cloud / Press', icon: Building2, desc: '"As featured in" or partner logos' },
     { code: 'map',         name: 'Map / Location',     icon: MapPin,    desc: 'Google Maps embed for physical store' },
+  ]},
+  { group: 'Advanced', items: [
+    { code: 'html',        name: 'Custom HTML / Embed', icon: Code2,    desc: 'Paste any HTML — widgets, scripts, 3rd-party embeds' },
   ]},
 ]
 const BLOCK_BY_CODE: Record<string, any> = Object.fromEntries(BLOCK_GROUPS.flatMap((g) => g.items).map((b) => [b.code, b]))
@@ -89,17 +94,37 @@ export default function ThemeEditorPage() {
   const [saving, setSaving]   = useState(false)
   const [device, setDevice]   = useState<Device>('desktop')
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
-  const [openPanel, setOpenPanel] = useState<'theme'|'brand'|'contact'|'social'|'bar'|null>('theme')
+  const [openPanel, setOpenPanel] = useState<'theme'|'brand'|'contact'|'social'|'bar'|'templates'|null>('theme')
   const [picker, setPicker] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  // Pages (multi-page support)
+  const [pages, setPages] = useState<Array<{ id: number; slug: string; title: string; is_home: boolean; is_published: boolean }>>([])
+  const [activePageId, setActivePageId] = useState<number | null>(null)
+  const activePage = useMemo(() => pages.find((p) => p.id === activePageId) ?? null, [pages, activePageId])
+  // Templates
+  const [templates, setTemplates] = useState<Array<{ id: number; name: string; block_count: number; preview_color: string | null; description: string | null }>>([])
 
-  async function loadAll() {
+  async function loadPages(selectId?: number) {
+    const { data } = await api.get('/admin/storefront/pages')
+    const list = (data ?? []) as any[]
+    setPages(list)
+    if (selectId) setActivePageId(selectId)
+    else if (list.length && !activePageId) {
+      setActivePageId((list.find((p) => p.is_home) ?? list[0]).id)
+    }
+  }
+  async function loadTemplates() {
+    try { const { data } = await api.get('/admin/storefront/section-templates'); setTemplates(data ?? []) } catch {}
+  }
+
+  async function loadAll(pageId?: number | null) {
     setLoading(true)
     try {
+      const targetPage = pageId ?? activePageId
       const [s, sec, b] = await Promise.all([
         api.get('/admin/storefront/theme-settings'),
-        api.get('/admin/storefront/sections'),
+        api.get('/admin/storefront/sections', { params: targetPage ? { page_id: targetPage } : {} }),
         api.get('/admin/storefront/announcement-bars'),
       ])
       const secVal: Section[] = Array.isArray(sec.data) ? sec.data : sec.data?.data ?? []
@@ -109,7 +134,8 @@ export default function ThemeEditorPage() {
       setBars(barVal);      setOrigBars(barVal)
     } finally { setLoading(false) }
   }
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadPages(); loadTemplates() }, [])
+  useEffect(() => { if (activePageId) loadAll(activePageId) /* eslint-disable-line */ }, [activePageId])
 
   const liveAnnouncement = useMemo(() => bars.find((b) => b.active) ?? null, [bars])
   const livePayload = useMemo(() => ({
@@ -178,10 +204,72 @@ export default function ThemeEditorPage() {
   function updateSection(id: number, patch: Partial<Section>) { setSections(sections.map((s) => s.id === id ? { ...s, ...patch } : s)) }
   async function addSection(type: string) {
     const def = BLOCK_BY_CODE[type]
-    const { data } = await api.post('/admin/storefront/sections', { type, label: def?.name, enabled: true, config_json: defaultConfig(type) })
+    const { data } = await api.post('/admin/storefront/sections', {
+      type, label: def?.name, enabled: true, config_json: defaultConfig(type),
+      page_id: activePageId,
+    })
     const next = [...sections, data]
     setSections(next); setOrigSections(next)
     setPicker(false); setExpandedSection(data.id)
+  }
+  // ── Page CRUD ──
+  async function createPage() {
+    const title = prompt('Name for the new page (e.g. "About us", "Shipping Policy"):')
+    if (!title?.trim()) return
+    try {
+      const { data } = await api.post('/admin/storefront/pages', { title: title.trim() })
+      await loadPages(data.id)
+      toast.success(`Created page /${data.slug}`)
+    } catch (e: any) { toast.error(e?.response?.data?.message ?? 'Could not create page') }
+  }
+  async function renamePage() {
+    if (!activePage || activePage.is_home) return
+    const title = prompt('Rename page to:', activePage.title)
+    if (!title?.trim() || title === activePage.title) return
+    try {
+      await api.put(`/admin/storefront/pages/${activePage.id}`, { title: title.trim() })
+      await loadPages(activePage.id); toast.success('Page renamed')
+    } catch { toast.error('Rename failed') }
+  }
+  async function deletePage() {
+    if (!activePage || activePage.is_home) return
+    if (!confirm(`Delete page "${activePage.title}"? Its sections will be deleted too. This cannot be undone.`)) return
+    try {
+      await api.delete(`/admin/storefront/pages/${activePage.id}`)
+      const home = pages.find((p) => p.is_home)
+      setActivePageId(home?.id ?? null); await loadPages(home?.id)
+      toast.success('Page deleted')
+    } catch (e: any) { toast.error(e?.response?.data?.message ?? 'Delete failed') }
+  }
+  async function togglePublished() {
+    if (!activePage || activePage.is_home) return
+    try {
+      await api.put(`/admin/storefront/pages/${activePage.id}`, { is_published: !activePage.is_published })
+      await loadPages(activePage.id)
+    } catch { toast.error('Toggle failed') }
+  }
+  // ── Templates ──
+  async function saveAsTemplate() {
+    const name = prompt('Save the current page\'s sections as a re-usable template. Name:')
+    if (!name?.trim()) return
+    try {
+      const { data } = await api.post('/admin/storefront/section-templates', {
+        name: name.trim(), page_id: activePageId,
+      })
+      setTemplates([data, ...templates]); toast.success(`Saved template: ${data.name}`)
+    } catch (e: any) { toast.error(e?.response?.data?.message ?? 'Save failed') }
+  }
+  async function applyTemplate(id: number, name: string, mode: 'append' | 'replace') {
+    if (!activePageId) return
+    if (mode === 'replace' && !confirm(`Replace ALL sections on this page with "${name}"?`)) return
+    try {
+      await api.post(`/admin/storefront/section-templates/${id}/apply`, { page_id: activePageId, mode })
+      await loadAll(activePageId); toast.success(`Applied: ${name}`)
+    } catch { toast.error('Apply failed') }
+  }
+  async function deleteTemplate(id: number, name: string) {
+    if (!confirm(`Delete template "${name}"? Pages already using it are unaffected.`)) return
+    try { await api.delete(`/admin/storefront/section-templates/${id}`); setTemplates(templates.filter((t) => t.id !== id)) } catch { toast.error('Delete failed') }
   }
   async function deleteSection(id: number) {
     if (!confirm('Delete this section?')) return
@@ -270,6 +358,38 @@ export default function ThemeEditorPage() {
           </Link>
           <div className="h-5 w-px bg-slate-200" />
           <h1 className="text-sm font-semibold text-slate-800">Theme Editor</h1>
+          {pages.length > 0 && activePageId && (
+            <div className="flex items-center gap-1">
+              <select value={activePageId} onChange={(e) => setActivePageId(Number(e.target.value))}
+                className="rounded-md border border-slate-300 px-2 py-1 text-xs">
+                {pages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.is_home ? '🏠 ' : ''}{p.title} {!p.is_published && '(draft)'}
+                  </option>
+                ))}
+              </select>
+              <button onClick={createPage} title="New page"
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                <FilePlus className="h-3.5 w-3.5" />
+              </button>
+              {activePage && !activePage.is_home && (
+                <>
+                  <button onClick={renamePage} title="Rename page"
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                    <FileText className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={togglePublished} title={activePage.is_published ? 'Unpublish (hide from public)' : 'Publish'}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                    {activePage.is_published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  </button>
+                  <button onClick={deletePage} title="Delete page"
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-500">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {dirty
             ? <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">● Unsaved changes</span>
             : savedAt
@@ -467,10 +587,40 @@ export default function ThemeEditorPage() {
             </button>
           </Panel>
 
+          {/* Templates panel */}
+          <Panel title="Section templates" icon={BookmarkPlus} open={openPanel === 'templates'} onToggle={() => setOpenPanel(openPanel === 'templates' ? null : 'templates')}>
+            <div className="space-y-2">
+              <button onClick={saveAsTemplate}
+                className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-indigo-300 bg-indigo-50/50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-50">
+                <BookmarkPlus className="h-3 w-3" /> Save current page as template
+              </button>
+              {templates.length === 0 ? (
+                <p className="text-center text-[11px] text-slate-400">No templates yet. Save your current page to re-use it later.</p>
+              ) : templates.map((t) => (
+                <div key={t.id} className="rounded-md border border-slate-200 p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-6 w-6 flex-none rounded" style={{ background: t.preview_color ?? '#94a3b8' }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-semibold text-slate-800">{t.name}</div>
+                      <div className="text-[10px] text-slate-500">{t.block_count} blocks</div>
+                    </div>
+                    <button onClick={() => deleteTemplate(t.id, t.name)} className="text-slate-400 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                  <div className="mt-2 flex gap-1.5">
+                    <button onClick={() => applyTemplate(t.id, t.name, 'append')}
+                      className="flex-1 rounded border border-slate-300 px-2 py-1 text-[11px] hover:bg-slate-50">Add to page</button>
+                    <button onClick={() => applyTemplate(t.id, t.name, 'replace')}
+                      className="flex-1 rounded border border-rose-300 text-rose-700 px-2 py-1 text-[11px] hover:bg-rose-50">Replace page</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
           <div>
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <Layers className="h-4 w-4" /> Sections
+                <Layers className="h-4 w-4" /> Sections {activePage && <span className="text-[10px] text-slate-400">on {activePage.title}</span>}
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-mono text-slate-500">{sections.length}</span>
               </h2>
               <button onClick={() => setPicker(true)} className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-700">
@@ -510,7 +660,13 @@ export default function ThemeEditorPage() {
         <main className="relative flex-1 overflow-auto p-4">
           <div className="mx-auto h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%', height: device === 'desktop' ? '100%' : DEVICE_HEIGHTS[device] }}>
-            <iframe ref={iframeRef} src="/?preview=1" title="Storefront preview" className="h-full w-full" />
+            <iframe
+              ref={iframeRef}
+              key={activePage?.slug ?? 'home'}
+              src={activePage?.is_home || !activePage ? '/?preview=1' : `/p/${activePage.slug}?preview=1`}
+              title="Storefront preview"
+              className="h-full w-full"
+            />
           </div>
 
           {/* Sticky save bar that pops up whenever there are unsaved changes */}
@@ -653,6 +809,8 @@ function defaultConfig(type: string): any {
     case 'map':               return { title: 'Visit our store', address: 'Kuala Lumpur, Malaysia', embed_url: '', height: 360 }
     case 'spacer':            return { height: 60, bg: 'page' }
     case 'divider':           return { style: 'ornament', width: 'normal' }
+    case 'product_showcase':  return { product_id: null, kicker: 'Featured product', subtitle: '', image_position: 'left' }
+    case 'html':              return { html: '<!-- Paste any HTML here. Loads as-is. -->', bg: 'page', max_width: 'normal' }
     default: return {}
   }
 }
@@ -1167,6 +1325,49 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
               className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
               <option value="narrow">Narrow</option><option value="normal">Normal</option><option value="wide">Wide</option>
             </select>
+          </div>
+        </>
+      )}
+
+      {section.type === 'product_showcase' && (
+        <>
+          <Input label="Product ID (from Inventory)" v={c.product_id ?? ''} on={(v) => set('product_id', v ? Number(v) : null)} />
+          <p className="text-[11px] text-slate-500">Find the ID in Inventory → Products. The product must be published to website.</p>
+          <Input label="Kicker (small label above name)" v={c.kicker} on={(v) => set('kicker', v)} />
+          <Textarea label="Subtitle (optional)" v={c.subtitle} on={(v) => set('subtitle', v)} />
+          <div>
+            <label className="text-xs font-medium text-slate-600">Image position</label>
+            <select value={c.image_position ?? 'left'} onChange={(e) => set('image_position', e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+              <option value="left">Left</option><option value="right">Right</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      {section.type === 'html' && (
+        <>
+          <div>
+            <label className="text-xs font-medium text-slate-600">HTML</label>
+            <textarea value={c.html ?? ''} onChange={(e) => set('html', e.target.value)} rows={8}
+              className="mt-1 w-full rounded border border-slate-300 px-2 py-1 font-mono text-xs" />
+          </div>
+          <p className="text-[11px] text-rose-600">⚠️ Paste only HTML you trust. Scripts run on your storefront — never paste from untrusted sources.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium text-slate-600">Background</label>
+              <select value={c.bg ?? 'page'} onChange={(e) => set('bg', e.target.value)}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+                <option value="page">Page</option><option value="surface">Surface</option><option value="transparent">Transparent</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600">Max width</label>
+              <select value={c.max_width ?? 'normal'} onChange={(e) => set('max_width', e.target.value)}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm">
+                <option value="narrow">Narrow</option><option value="normal">Normal</option><option value="wide">Wide</option><option value="full">Full</option>
+              </select>
+            </div>
           </div>
         </>
       )}

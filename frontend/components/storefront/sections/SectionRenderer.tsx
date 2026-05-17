@@ -23,6 +23,8 @@ import { FAQAccordion } from './FAQAccordion'
 import { MapEmbed } from './MapEmbed'
 import { Spacer } from './Spacer'
 import { Divider } from './Divider'
+import { ProductShowcase } from './ProductShowcase'
+import { CustomHtml } from './CustomHtml'
 
 export function SectionRenderer({ section }: { section: SectionPayload }) {
   const c = section.config ?? {}
@@ -50,6 +52,8 @@ export function SectionRenderer({ section }: { section: SectionPayload }) {
     case 'map':               return <MapEmbed config={c} />
     case 'spacer':            return <Spacer config={c} />
     case 'divider':           return <Divider config={c} />
+    case 'product_showcase':  return <ProductShowcase config={c} />
+    case 'html':              return <CustomHtml config={c} />
     default:                  return null
   }
 }
