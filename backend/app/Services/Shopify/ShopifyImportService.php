@@ -26,36 +26,29 @@ class ShopifyImportService
     private const API_VERSION = '2024-10';
     private const PAGE_SIZE   = 50;
 
-    /** @return array{ok:bool, message?:string, shop?:array, status?:int, hint?:string, url?:string, body?:string} */
+    /** Auto-detect API mode from token prefix. shpss_ = Storefront GraphQL, shpat_/shpca_ = Admin REST. */
+    private function mode(ShopifyImportSetting $s): string
+    {
+        return str_starts_with($s->access_token ?? '', 'shpss_') ? 'storefront' : 'admin';
+    }
+
+    /** @return array{ok:bool, message?:string, shop?:array, status?:int, hint?:string, url?:string, body?:string, mode?:string} */
     public function testConnection(ShopifyImportSetting $s): array
     {
         if (!$s->shopHost() || !$s->access_token) {
             return ['ok' => false, 'message' => 'Shop domain and access token are required.'];
         }
-        $host = $s->shopHost();
-        $url  = 'https://' . $host . '/admin/api/' . self::API_VERSION . '/shop.json';
-
-        // Common mistake: pasting the Storefront API token (shpss_…) which is for
-        // public, headless storefronts — it cannot read /admin/* endpoints. Catch
-        // this early instead of letting Shopify return a generic 401.
-        $token = $s->access_token;
-        if (str_starts_with($token, 'shpss_')) {
+        if (!preg_match('/\.myshopify\.com$/i', $s->shopHost())) {
             return [
                 'ok' => false, 'status' => 0,
-                'message' => 'Wrong token type — this is a Storefront API token.',
-                'hint'    => "You copied the Storefront API access token (starts with shpss_).\nThe import needs the Admin API access token, which starts with shpat_.\n\nFix in Shopify Admin:\n1) Settings → Apps and sales channels → Develop apps\n2) Open your app\n3) API credentials tab\n4) Look for \"Admin API access token\" section (NOT \"Storefront API access token\")\n5) If you don't see it yet: Configuration tab → enable read_products → Save → top-right Install app → then come back to API credentials → Reveal the Admin token\n6) Paste the shpat_… token here",
-                'url'     => $url,
-                'body'    => "Detected token prefix: 'shpss_' — that's the Storefront API token, not the Admin API token.",
+                'message' => "Shop domain must end in .myshopify.com — got: " . $s->shopHost(),
+                'hint'    => "Use the original .myshopify.com domain (visible top-left of your Shopify admin), not the customer-facing custom domain.",
             ];
         }
-        if (!str_starts_with($token, 'shpat_') && !str_starts_with($token, 'shpca_')) {
-            return [
-                'ok' => false, 'status' => 0,
-                'message' => 'Token format does not look like a Shopify Admin token.',
-                'hint'    => "Admin API access tokens start with 'shpat_'. You pasted a token that starts with: '" . substr($token, 0, 6) . "…'\n\nIn Shopify Admin → Settings → Apps and sales channels → Develop apps → open your app → API credentials → look for the 'Admin API access token' section (not 'Storefront API access token', not 'API key', not 'API secret key').",
-                'url'     => $url,
-            ];
-        }
+        return $this->mode($s) === 'storefront'
+            ? $this->testStorefront($s)
+            : $this->testAdmin($s);
+    }
 
         // 1) Quick sanity on domain — Shopify Admin API ONLY works on *.myshopify.com,
         //    NOT on the customer-facing custom domain (carlanisa.com etc.). Surface
@@ -128,8 +121,85 @@ class ShopifyImportService
     /** Returns the total product count on the Shopify shop. */
     public function totalCount(ShopifyImportSetting $s): int
     {
+        if ($this->mode($s) === 'storefront') {
+            // Storefront API doesn't expose a count endpoint; do a tiny GraphQL probe
+            $r = $this->graphql($s, 'query { products(first: 1) { edges { node { id } } } }');
+            return $r->successful() ? 1 : 0; // we just return a positive signal; real count comes from chunking
+        }
         $resp = $this->req($s, 'products/count.json');
         return $resp->successful() ? (int) ($resp->json('count') ?? 0) : 0;
+    }
+
+    // ─── Admin REST test ─────────────────────────────────────────
+    private function testAdmin(ShopifyImportSetting $s): array
+    {
+        $url = 'https://' . $s->shopHost() . '/admin/api/' . self::API_VERSION . '/shop.json';
+        try { $resp = $this->req($s, 'shop.json'); }
+        catch (\Throwable $e) { return ['ok' => false, 'message' => 'Network: ' . $e->getMessage(), 'url' => $url]; }
+        if ($resp->successful()) {
+            $shop = $resp->json('shop');
+            return ['ok' => true, 'mode' => 'admin', 'shop' => [
+                'name' => $shop['name'] ?? null, 'plan' => $shop['plan_display_name'] ?? null, 'domain' => $shop['domain'] ?? null,
+            ]];
+        }
+        return [
+            'ok' => false, 'mode' => 'admin', 'status' => $resp->status(),
+            'message' => "Shopify Admin API returned HTTP " . $resp->status(),
+            'hint'    => $this->hintForStatus($resp->status(), $resp->body()),
+            'url' => $url, 'body' => substr($resp->body(), 0, 400),
+        ];
+    }
+
+    // ─── Storefront GraphQL test ─────────────────────────────────
+    private function testStorefront(ShopifyImportSetting $s): array
+    {
+        $url = 'https://' . $s->shopHost() . '/api/' . self::API_VERSION . '/graphql.json';
+        try {
+            $resp = $this->graphql($s, 'query { shop { name primaryDomain { url } paymentSettings { currencyCode } } }');
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'Network: ' . $e->getMessage(), 'url' => $url];
+        }
+        if ($resp->successful() && empty($resp->json('errors'))) {
+            $shop = $resp->json('data.shop') ?? [];
+            return ['ok' => true, 'mode' => 'storefront', 'shop' => [
+                'name'   => $shop['name'] ?? null,
+                'domain' => $shop['primaryDomain']['url'] ?? null,
+                'plan'   => 'Storefront API',
+            ]];
+        }
+        $body = $resp->body();
+        $errs = $resp->json('errors') ?? [];
+        $firstErr = is_array($errs) && isset($errs[0]['message']) ? $errs[0]['message'] : null;
+        return [
+            'ok' => false, 'mode' => 'storefront', 'status' => $resp->status(),
+            'message' => $firstErr ?: ('Storefront API returned HTTP ' . $resp->status()),
+            'hint'    => $this->hintForStorefront($resp->status(), $body, $firstErr),
+            'url' => $url, 'body' => substr($body, 0, 400),
+        ];
+    }
+
+    private function hintForStorefront(int $status, string $body, ?string $firstErr): string
+    {
+        if ($status === 401 || stripos($body, 'unauthorized') !== false) {
+            return 'Storefront token is invalid. Open your Shopify Admin → Apps and sales channels → Develop apps → your app → API credentials tab → "Storefront API access tokens" section → reveal/create one → re-paste here.';
+        }
+        if ($status === 403) {
+            return 'Storefront API access scope missing. In your app: Configuration tab → "Storefront API access scopes" → enable unauthenticated_read_product_listings → Save → API credentials → Reveal new token.';
+        }
+        if ($firstErr) return $firstErr;
+        return 'Unexpected Storefront API error. See response body below.';
+    }
+
+    private function graphql(ShopifyImportSetting $s, string $query, array $variables = []): Response
+    {
+        return Http::withHeaders([
+            'X-Shopify-Storefront-Access-Token' => $s->access_token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])->timeout(30)->post(
+            'https://' . $s->shopHost() . '/api/' . self::API_VERSION . '/graphql.json',
+            ['query' => $query, 'variables' => $variables]
+        );
     }
 
     /**
@@ -148,6 +218,9 @@ class ShopifyImportService
      */
     public function importChunk(ShopifyImportSetting $s, ?string $cursor = null): array
     {
+        if ($this->mode($s) === 'storefront') {
+            return $this->importChunkStorefront($s, $cursor);
+        }
         $params = ['limit' => self::PAGE_SIZE, 'fields' => 'id,title,handle,product_type,variants,images,image'];
         if ($cursor) $params['page_info'] = $cursor;
 
@@ -232,6 +305,101 @@ class ShopifyImportService
     // ─────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────
+
+    /** Storefront GraphQL chunk — same shape as Admin REST chunk. */
+    private function importChunkStorefront(ShopifyImportSetting $s, ?string $cursor = null): array
+    {
+        $query = <<<'GQL'
+        query ($cursor: String, $limit: Int!) {
+          products(first: $limit, after: $cursor) {
+            edges {
+              cursor
+              node {
+                handle
+                title
+                images(first: 10)   { edges { node { url altText } } }
+                variants(first: 20) { edges { node { sku } } }
+              }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+        GQL;
+        $resp = $this->graphql($s, $query, ['cursor' => $cursor, 'limit' => self::PAGE_SIZE]);
+        if (!$resp->successful() || !empty($resp->json('errors'))) {
+            $err = $resp->json('errors.0.message') ?? ('HTTP ' . $resp->status());
+            return [
+                'processed' => 0, 'matched' => 0, 'updated' => 0, 'downloaded' => 0, 'skipped' => 0,
+                'errors' => ['Storefront API error: ' . $err], 'next_cursor' => null, 'examples' => [],
+            ];
+        }
+        $edges = $resp->json('data.products.edges') ?? [];
+        $pageInfo = $resp->json('data.products.pageInfo') ?? [];
+
+        // Normalise to the same shape the Admin-REST path uses, so the rest of
+        // the loop is identical.
+        $products = array_map(function ($edge) {
+            $node = $edge['node'];
+            return [
+                'title'   => $node['title']  ?? null,
+                'handle'  => $node['handle'] ?? null,
+                'variants'=> array_map(fn($v) => ['sku' => $v['node']['sku'] ?? null], $node['variants']['edges'] ?? []),
+                'images'  => array_map(fn($i) => ['src' => $i['node']['url'] ?? null, 'alt' => $i['node']['altText'] ?? null], $node['images']['edges'] ?? []),
+            ];
+        }, $edges);
+
+        $matched = $updated = $downloaded = $skipped = 0;
+        $errors  = []; $examples = [];
+
+        foreach ($products as $sp) {
+            $erp = $this->matchErpProduct($sp, $s->match_strategy);
+            $images = $sp['images'] ?? [];
+
+            if (!$erp) {
+                $skipped++;
+                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => null, 'images' => count($images), 'action' => 'no-match'];
+                continue;
+            }
+            $matched++;
+            if ($s->only_missing_images && (!empty($erp->featured_image_url) || !empty($erp->image_path))) {
+                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => count($images), 'action' => 'skipped (has image)'];
+                continue;
+            }
+            if (empty($images)) {
+                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => 0, 'action' => 'no images in Shopify'];
+                continue;
+            }
+            try {
+                $urls = [];
+                foreach ($images as $img) {
+                    if (empty($img['src'])) continue;
+                    $u = $this->downloadAndStore($img['src'], $erp);
+                    if ($u) { $urls[] = $u; $downloaded++; }
+                }
+                if (!empty($urls)) {
+                    $erp->featured_image_url = $urls[0];
+                    $erp->gallery_urls = array_slice($urls, 1);
+                    $erp->save();
+                    $updated++;
+                    if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => count($urls), 'action' => 'imported'];
+                }
+            } catch (\Throwable $e) {
+                $errors[] = ($sp['title'] ?? '?') . ': ' . $e->getMessage();
+                Log::warning('Shopify storefront import failed', ['err' => $e->getMessage()]);
+            }
+        }
+
+        return [
+            'processed'   => count($products),
+            'matched'     => $matched,
+            'updated'     => $updated,
+            'downloaded'  => $downloaded,
+            'skipped'     => $skipped,
+            'errors'      => $errors,
+            'next_cursor' => ($pageInfo['hasNextPage'] ?? false) ? ($pageInfo['endCursor'] ?? null) : null,
+            'examples'    => $examples,
+        ];
+    }
 
     private function matchErpProduct(array $sp, string $strategy): ?Product
     {
