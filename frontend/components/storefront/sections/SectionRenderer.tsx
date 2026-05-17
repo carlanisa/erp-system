@@ -12,6 +12,17 @@ import { InstagramFeed } from './InstagramFeed'
 import { RichText } from './RichText'
 import { VideoBlock } from './VideoBlock'
 import { CountdownSale } from './CountdownSale'
+import { Columns } from './Columns'
+import { LogoCloud } from './LogoCloud'
+import { Stats } from './Stats'
+import { CTABanner } from './CTABanner'
+import { FeaturesGrid } from './FeaturesGrid'
+import { Steps } from './Steps'
+import { Gallery } from './Gallery'
+import { FAQAccordion } from './FAQAccordion'
+import { MapEmbed } from './MapEmbed'
+import { Spacer } from './Spacer'
+import { Divider } from './Divider'
 
 export function SectionRenderer({ section }: { section: SectionPayload }) {
   const c = section.config ?? {}
@@ -27,6 +38,18 @@ export function SectionRenderer({ section }: { section: SectionPayload }) {
     case 'rich_text':         return <RichText config={c} />
     case 'video':             return <VideoBlock config={c} />
     case 'countdown':         return <CountdownSale config={c} />
+    // ── new advanced blocks ───────────────────────────
+    case 'columns':           return <Columns config={c} />
+    case 'logo_cloud':        return <LogoCloud config={c} />
+    case 'stats':             return <Stats config={c} />
+    case 'cta_banner':        return <CTABanner config={c} />
+    case 'features_grid':     return <FeaturesGrid config={c} />
+    case 'steps':             return <Steps config={c} />
+    case 'gallery':           return <Gallery config={c} />
+    case 'faq':               return <FAQAccordion config={c} />
+    case 'map':               return <MapEmbed config={c} />
+    case 'spacer':            return <Spacer config={c} />
+    case 'divider':           return <Divider config={c} />
     default:                  return null
   }
 }
