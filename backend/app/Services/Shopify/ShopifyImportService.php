@@ -35,6 +35,28 @@ class ShopifyImportService
         $host = $s->shopHost();
         $url  = 'https://' . $host . '/admin/api/' . self::API_VERSION . '/shop.json';
 
+        // Common mistake: pasting the Storefront API token (shpss_…) which is for
+        // public, headless storefronts — it cannot read /admin/* endpoints. Catch
+        // this early instead of letting Shopify return a generic 401.
+        $token = $s->access_token;
+        if (str_starts_with($token, 'shpss_')) {
+            return [
+                'ok' => false, 'status' => 0,
+                'message' => 'Wrong token type — this is a Storefront API token.',
+                'hint'    => "You copied the Storefront API access token (starts with shpss_).\nThe import needs the Admin API access token, which starts with shpat_.\n\nFix in Shopify Admin:\n1) Settings → Apps and sales channels → Develop apps\n2) Open your app\n3) API credentials tab\n4) Look for \"Admin API access token\" section (NOT \"Storefront API access token\")\n5) If you don't see it yet: Configuration tab → enable read_products → Save → top-right Install app → then come back to API credentials → Reveal the Admin token\n6) Paste the shpat_… token here",
+                'url'     => $url,
+                'body'    => "Detected token prefix: 'shpss_' — that's the Storefront API token, not the Admin API token.",
+            ];
+        }
+        if (!str_starts_with($token, 'shpat_') && !str_starts_with($token, 'shpca_')) {
+            return [
+                'ok' => false, 'status' => 0,
+                'message' => 'Token format does not look like a Shopify Admin token.',
+                'hint'    => "Admin API access tokens start with 'shpat_'. You pasted a token that starts with: '" . substr($token, 0, 6) . "…'\n\nIn Shopify Admin → Settings → Apps and sales channels → Develop apps → open your app → API credentials → look for the 'Admin API access token' section (not 'Storefront API access token', not 'API key', not 'API secret key').",
+                'url'     => $url,
+            ];
+        }
+
         // 1) Quick sanity on domain — Shopify Admin API ONLY works on *.myshopify.com,
         //    NOT on the customer-facing custom domain (carlanisa.com etc.). Surface
         //    this very early because it's the #1 cause of 403/404.
