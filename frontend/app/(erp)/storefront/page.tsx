@@ -8,13 +8,22 @@ import {
 
 const MODULES = [
   {
-    title: 'Theme Customizer',
-    href:  '/storefront/theme',
+    title: '🎨 Theme Editor',
+    href:  '/storefront/editor',
     icon:  Palette,
     color: 'text-rose-600',
     bg:    'bg-rose-50',
-    border:'border-rose-100',
-    desc:  'Colors, fonts, logo, contact + social — your brand identity (Shopify-style)',
+    border:'border-rose-300',
+    desc:  'Shopify-style visual editor — edit theme + sections with live preview side-by-side. The fastest way to redesign your store.',
+  },
+  {
+    title: 'Theme Settings',
+    href:  '/storefront/theme',
+    icon:  Palette,
+    color: 'text-amber-600',
+    bg:    'bg-amber-50',
+    border:'border-amber-100',
+    desc:  'Colors, fonts, logo, contact + social — form-based brand editor',
   },
   {
     title: 'Homepage Sections',
@@ -23,7 +32,7 @@ const MODULES = [
     color: 'text-violet-600',
     bg:    'bg-violet-50',
     border:'border-violet-100',
-    desc:  'Drag-and-drop sections: hero, categories, featured, testimonials, newsletter, Instagram',
+    desc:  'Sections list (use Theme Editor for visual editing)',
   },
   {
     title: 'Website Orders',
