@@ -37,7 +37,7 @@ export default function ShopifyImportPage() {
   const [strategy, setStrategy] = useState<Settings['match_strategy']>('sku')
   const [onlyMissing, setOnlyMissing] = useState(true)
   const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; shop?: any } | null>(null)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; shop?: any; status?: number; hint?: string; url?: string; body?: string } | null>(null)
   const [scanning, setScanning] = useState(false)
   const [scanTotal, setScanTotal] = useState<number | null>(null)
   const [running, setRunning] = useState(false)
@@ -158,19 +158,70 @@ export default function ShopifyImportPage() {
             className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50">
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Test connection
           </button>
-          {testResult && (
-            testResult.ok ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Connected to {testResult.shop?.name ?? 'Shopify'}
-                {testResult.shop?.plan && <span className="text-emerald-500">· {testResult.shop.plan}</span>}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 text-xs font-medium text-rose-700">
-                <AlertCircle className="h-3.5 w-3.5" /> {testResult.message}
-              </span>
-            )
+          {testResult?.ok && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Connected to {testResult.shop?.name ?? 'Shopify'}
+              {testResult.shop?.plan && <span className="text-emerald-500">· {testResult.shop.plan}</span>}
+            </span>
           )}
         </div>
+
+        {/* Detailed error panel — only when test failed */}
+        {testResult && !testResult.ok && (
+          <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-none text-rose-600" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-rose-800">
+                  {testResult.message}
+                  {testResult.status ? <span className="ml-2 rounded bg-rose-200 px-1.5 py-0.5 text-[10px] font-mono text-rose-900">HTTP {testResult.status}</span> : null}
+                </div>
+                {testResult.hint && (
+                  <div className="mt-2 whitespace-pre-line rounded bg-white/70 p-3 text-xs text-rose-900">
+                    <strong>How to fix:</strong>{"\n"}{testResult.hint}
+                  </div>
+                )}
+                {testResult.url && (
+                  <div className="mt-2 truncate text-[11px] font-mono text-rose-700">URL tried: {testResult.url}</div>
+                )}
+                {testResult.body && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] text-rose-700">Show Shopify response body</summary>
+                    <pre className="mt-1 overflow-x-auto rounded bg-rose-100 p-2 text-[10px] text-rose-900">{testResult.body}</pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Always-visible help: most common 403 causes */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-slate-600 hover:text-indigo-600">
+            Got 403 / 401 / 404? Click for the most common fixes
+          </summary>
+          <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 space-y-2">
+            <div>
+              <b className="text-slate-900">403 — Access denied:</b> The app exists but the access token cannot read products. Fix in this exact order:
+              <ol className="ml-5 mt-1 list-decimal space-y-1">
+                <li>Shopify Admin → <b>Settings → Apps and sales channels → Develop apps</b></li>
+                <li>Open your app → <b>Configuration tab</b></li>
+                <li>Under <b>Admin API access scopes</b> tick <code className="rounded bg-slate-200 px-1">read_products</code> → <b>Save</b></li>
+                <li>Top right → <b>Install app</b> (must do this AFTER saving scopes)</li>
+                <li>Open the <b>API credentials tab</b> → <b>Reveal token once</b> → copy the new <code className="rounded bg-slate-200 px-1">shpat_…</code> token → paste it above → Save credentials → Test again</li>
+              </ol>
+            </div>
+            <div>
+              <b className="text-slate-900">404 — Shop not found:</b> Make sure the domain ends in <code className="rounded bg-slate-200 px-1">.myshopify.com</code>. The Admin API does <b>not</b> work on your custom domain (carlanisa.com). The .myshopify.com URL is shown at the top-left of your Shopify admin.
+            </div>
+            <div>
+              <b className="text-slate-900">401 — Unauthorized:</b> Token was regenerated or you copied the API key instead of the access token. The token must start with <code className="rounded bg-slate-200 px-1">shpat_</code>.
+            </div>
+            <div className="border-t border-slate-200 pt-2">
+              <b className="text-slate-900">Still stuck?</b> Click "Test connection" again — the error panel above shows the exact URL hit and the raw response body from Shopify, which is usually enough to pinpoint the cause.
+            </div>
+          </div>
+        </details>
       </Section>
 
       {/* Step 2 — match options */}

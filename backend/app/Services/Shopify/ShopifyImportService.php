@@ -26,24 +26,81 @@ class ShopifyImportService
     private const API_VERSION = '2024-10';
     private const PAGE_SIZE   = 50;
 
-    /** @return array{ok:bool, message?:string, shop?:array} */
+    /** @return array{ok:bool, message?:string, shop?:array, status?:int, hint?:string, url?:string, body?:string} */
     public function testConnection(ShopifyImportSetting $s): array
     {
         if (!$s->shopHost() || !$s->access_token) {
             return ['ok' => false, 'message' => 'Shop domain and access token are required.'];
         }
-        $resp = $this->req($s, 'shop.json');
-        if (!$resp->successful()) {
-            return ['ok' => false, 'message' => 'Connection failed (' . $resp->status() . '). Check shop domain + token.'];
+        $host = $s->shopHost();
+        $url  = 'https://' . $host . '/admin/api/' . self::API_VERSION . '/shop.json';
+
+        // 1) Quick sanity on domain — Shopify Admin API ONLY works on *.myshopify.com,
+        //    NOT on the customer-facing custom domain (carlanisa.com etc.). Surface
+        //    this very early because it's the #1 cause of 403/404.
+        if (!preg_match('/\.myshopify\.com$/i', $host)) {
+            return [
+                'ok' => false,
+                'status' => 0,
+                'message' => "Shop domain must end in .myshopify.com — got: $host",
+                'hint' => "Open your Shopify admin: top-left shop switcher shows the .myshopify.com URL. Custom domain (carlanisa.com) is for customers, not the Admin API.",
+                'url' => $url,
+            ];
         }
-        $shop = $resp->json('shop');
-        return ['ok' => true, 'shop' => [
-            'name'  => $shop['name']  ?? null,
-            'email' => $shop['email'] ?? null,
-            'plan'  => $shop['plan_display_name'] ?? null,
-            'country' => $shop['country_name'] ?? null,
-            'domain'  => $shop['domain'] ?? null,
-        ]];
+
+        try {
+            $resp = $this->req($s, 'shop.json');
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'Network error: ' . $e->getMessage(), 'url' => $url];
+        }
+
+        if ($resp->successful()) {
+            $shop = $resp->json('shop');
+            return ['ok' => true, 'shop' => [
+                'name'    => $shop['name']  ?? null,
+                'email'   => $shop['email'] ?? null,
+                'plan'    => $shop['plan_display_name'] ?? null,
+                'country' => $shop['country_name'] ?? null,
+                'domain'  => $shop['domain']  ?? null,
+            ]];
+        }
+
+        $status = $resp->status();
+        $body   = substr($resp->body(), 0, 400);
+        $hint   = $this->hintForStatus($status, $body);
+
+        return [
+            'ok'      => false,
+            'status'  => $status,
+            'message' => "Shopify returned HTTP $status",
+            'hint'    => $hint,
+            'url'     => $url,
+            'body'    => $body,
+        ];
+    }
+
+    private function hintForStatus(int $status, string $body): string
+    {
+        if ($status === 401) {
+            return 'Token is invalid or revoked. Re-open your Custom App in Shopify Admin → API credentials → reveal the Admin API access token → paste it again. If you regenerated it, the old one no longer works.';
+        }
+        if ($status === 402) {
+            return 'Shopify account is past-due or frozen. Sort out billing in Shopify Admin first.';
+        }
+        if ($status === 403) {
+            // Could be scope OR missing install
+            if (stripos($body, 'access denied') !== false || stripos($body, 'unauthorized') !== false) {
+                return 'The token does not have the required scope. Shopify Admin → Apps & sales channels → Develop apps → open your app → Configuration → enable read_products → Save → API credentials → "Reveal token" again and re-paste here.';
+            }
+            return 'Access denied. Three things to check, in order:\n1) Did you click "Install app" after configuring scopes? (most common)\n2) Is read_products checked under Configuration → Admin API access scopes?\n3) Did you copy the **Admin API access token** (not the API key)? It starts with shpat_.';
+        }
+        if ($status === 404) {
+            return 'Shop not found at this domain. Make sure the .myshopify.com is correct — even if you use a custom domain, the Admin API URL uses the original *.myshopify.com hostname.';
+        }
+        if ($status === 423) return 'Shop is locked by Shopify.';
+        if ($status === 429) return 'Rate-limited. Wait 30 seconds and try again.';
+        if ($status >= 500)  return 'Shopify server error. Try again in a minute.';
+        return 'Unexpected status — check the shop URL and token. Full response body is shown below.';
     }
 
     /** Returns the total product count on the Shopify shop. */
