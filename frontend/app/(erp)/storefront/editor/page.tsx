@@ -201,6 +201,48 @@ export default function ThemeEditorPage() {
     const { data } = await api.post('/admin/storefront/theme-settings/preset', { preset: code })
     setSettings(data); setOrigSettings(data)
   }
+  // ── Scene + custom theme ──
+  const [scenes, setScenes] = useState<Array<{code:string;name:string;tag:string;description:string;sample:string[];section_count:number}>>([])
+  const [customs, setCustoms] = useState<Array<{id:number;name:string;slug:string;preview_color:string|null}>>([])
+  const [presetTab, setPresetTab] = useState<'colors'|'scenes'|'mine'>('colors')
+  useEffect(() => {
+    api.get('/admin/storefront/scenes').then(({ data }) => setScenes(data ?? [])).catch(() => {})
+    api.get('/admin/storefront/custom-themes').then(({ data }) => setCustoms(data ?? [])).catch(() => {})
+  }, [])
+  async function applyScene(code: string) {
+    if (!confirm(`Apply the "${code}" scene? This REPLACES all your current sections, the announcement bar AND the theme. Tip: save your current setup as a custom theme first if you want to come back to it.`)) return
+    try {
+      await api.post(`/admin/storefront/scenes/${code}/apply`)
+      toast.success('Scene applied')
+      await loadAll()
+      iframeRef.current?.contentWindow?.postMessage({ type: 'STOREFRONT_RELOAD' }, '*')
+    } catch { toast.error('Could not apply scene') }
+  }
+  async function applyCustom(id: number, name: string) {
+    if (!confirm(`Apply saved theme "${name}"? Replaces sections + bar + theme.`)) return
+    try {
+      await api.post(`/admin/storefront/custom-themes/${id}/apply`)
+      toast.success(`Applied: ${name}`)
+      await loadAll()
+      iframeRef.current?.contentWindow?.postMessage({ type: 'STOREFRONT_RELOAD' }, '*')
+    } catch { toast.error('Could not apply theme') }
+  }
+  async function saveCurrentTheme() {
+    const name = prompt('Save current store as a custom theme. Give it a name:')
+    if (!name?.trim()) return
+    try {
+      const { data } = await api.post('/admin/storefront/custom-themes', { name: name.trim() })
+      setCustoms([data, ...customs])
+      toast.success(`Saved "${data.name}"`)
+    } catch { toast.error('Could not save') }
+  }
+  async function deleteCustom(id: number, name: string) {
+    if (!confirm(`Delete saved theme "${name}"? This does not change your live store.`)) return
+    try {
+      await api.delete(`/admin/storefront/custom-themes/${id}`)
+      setCustoms(customs.filter((c) => c.id !== id))
+    } catch { toast.error('Could not delete') }
+  }
 
   if (loading) return <div className="text-slate-400 p-6">Loading editor…</div>
 
@@ -259,26 +301,93 @@ export default function ThemeEditorPage() {
           <Panel title="Color & Fonts" icon={Palette} open={openPanel === 'theme'} onToggle={() => setOpenPanel(openPanel === 'theme' ? null : 'theme')}>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-slate-600">Quick presets — 12 top looks</label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {PRESETS.map((p) => {
-                    const active = settings.preset === p.code
-                    return (
-                      <button key={p.code} onClick={() => applyPreset(p.code)} title={`${p.name} — ${p.tag}`}
-                        className={`flex flex-col items-stretch gap-1.5 rounded-md border p-2 text-left transition ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-indigo-300 hover:shadow-sm'}`}>
-                        <div className="flex h-6 overflow-hidden rounded">
-                          {p.sample.map((c) => (
-                            <span key={c} className="flex-1" style={{ background: c }} />
-                          ))}
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-semibold text-slate-800 leading-tight">{p.name}</div>
-                          <div className="text-[10px] text-slate-500 leading-tight">{p.tag}</div>
-                        </div>
-                      </button>
-                    )
-                  })}
+                {/* 3-tab picker */}
+                <div className="mb-3 flex gap-1 rounded-full bg-slate-100 p-0.5">
+                  {([
+                    ['colors', 'Color presets'],
+                    ['scenes', 'Complete scenes'],
+                    ['mine',   'My themes'],
+                  ] as const).map(([k, label]) => (
+                    <button key={k} onClick={() => setPresetTab(k)}
+                      className={`flex-1 rounded-full px-2 py-1 text-[11px] font-medium transition ${presetTab === k ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
+
+                {/* Tab body */}
+                {presetTab === 'colors' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {PRESETS.map((p) => {
+                      const active = settings.preset === p.code
+                      return (
+                        <button key={p.code} onClick={() => applyPreset(p.code)} title={`${p.name} — ${p.tag}`}
+                          className={`flex flex-col items-stretch gap-1.5 rounded-md border p-2 text-left transition ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-indigo-300 hover:shadow-sm'}`}>
+                          <ThemeSwatch sample={p.sample} />
+                          <div>
+                            <div className="text-[11px] font-semibold text-slate-800 leading-tight">{p.name}</div>
+                            <div className="text-[10px] text-slate-500 leading-tight">{p.tag}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {presetTab === 'scenes' && (
+                  <>
+                    <p className="mb-2 text-[10px] text-slate-500">
+                      ⚠️ Applying a scene replaces all your sections + announcement bar + theme.
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {scenes.map((s) => (
+                        <button key={s.code} onClick={() => applyScene(s.code)}
+                          className="flex items-stretch gap-3 rounded-md border border-slate-200 p-2 text-left hover:border-indigo-300 hover:shadow-sm transition">
+                          <div className="w-16 flex-none">
+                            <ThemeSwatch sample={s.sample} tall />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1 text-xs font-semibold text-slate-800">
+                              {s.name}
+                              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-500">{s.section_count} sections</span>
+                            </div>
+                            <div className="text-[10px] text-indigo-600">{s.tag}</div>
+                            <div className="mt-0.5 line-clamp-2 text-[10px] text-slate-500">{s.description}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {presetTab === 'mine' && (
+                  <>
+                    <button onClick={saveCurrentTheme}
+                      className="mb-3 inline-flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-indigo-300 bg-indigo-50/50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-50">
+                      <Save className="h-3 w-3" /> Save current as new theme
+                    </button>
+                    {customs.length === 0 ? (
+                      <p className="text-center text-[11px] text-slate-400">No saved themes yet. Save your current setup so you can come back to it anytime.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {customs.map((c) => (
+                          <div key={c.id} className="flex items-center gap-2 rounded-md border border-slate-200 p-2 hover:border-indigo-300">
+                            <span className="inline-block h-7 w-7 flex-none rounded" style={{ background: c.preview_color ?? '#94a3b8' }} />
+                            <button onClick={() => applyCustom(c.id, c.name)}
+                              className="flex-1 min-w-0 text-left">
+                              <div className="truncate text-xs font-semibold text-slate-800">{c.name}</div>
+                              <div className="text-[10px] text-slate-500">Click to apply</div>
+                            </button>
+                            <button onClick={() => deleteCustom(c.id, c.name)}
+                              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-500" aria-label="Delete">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <ColorRow label="Primary"       k="color_primary" settings={settings} setSettings={setSettings} />
               <ColorRow label="Accent (gold)" k="color_accent"  settings={settings} setSettings={setSettings} />
@@ -751,6 +860,21 @@ function SectionEditor({ section, onChange, onLabel }: { section: Section; onCha
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/** Mini storefront mockup as a swatch — 3-band color block with a fake hero line. */
+function ThemeSwatch({ sample, tall = false }: { sample: string[]; tall?: boolean }) {
+  const [primary, accent, bg] = [sample[0] ?? '#000', sample[1] ?? '#999', sample[2] ?? '#fff']
+  return (
+    <div className={`overflow-hidden rounded ${tall ? 'h-14' : 'h-7'}`}>
+      <div className="flex h-1.5" style={{ background: primary }} />
+      <div className="relative flex-1" style={{ background: bg, height: tall ? '40px' : '18px' }}>
+        <div className="absolute left-1 top-1 h-1 w-6 rounded-full" style={{ background: primary, opacity: 0.6 }} />
+        {tall && <div className="absolute left-1 top-3 h-1 w-4 rounded-full" style={{ background: accent }} />}
+        <div className="absolute right-0 bottom-0 h-1 w-1/3" style={{ background: accent }} />
+      </div>
     </div>
   )
 }

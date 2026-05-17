@@ -527,6 +527,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('announcement-bars', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'storeBar']);
         Route::put('announcement-bars/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'updateBar']);
         Route::delete('announcement-bars/{id}', [\App\Http\Controllers\Storefront\Admin\ThemeSettingsController::class, 'destroyBar']);
+
+        // Complete scenes (theme + sections + bar in one shot) and custom saved themes
+        Route::get('scenes',                     [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'list']);
+        Route::post('scenes/{code}/apply',       [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'apply']);
+        Route::get('custom-themes',              [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'customs']);
+        Route::post('custom-themes',             [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'saveCurrent']);
+        Route::post('custom-themes/{id}/apply',  [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'applyCustom']);
+        Route::delete('custom-themes/{id}',      [\App\Http\Controllers\Storefront\Admin\ScenesController::class, 'deleteCustom']);
     });
 });
 
