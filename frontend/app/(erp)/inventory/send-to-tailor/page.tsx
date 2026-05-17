@@ -158,6 +158,10 @@ export default function TailorOrderPage() {
   const [scanFeedback, setScanFeedback]           = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   type FabricReturn = { item_code: string; name: string; color: string; size: string; qty: string; uom: string }
   const [returnedFabric, setReturnedFabric]       = useState<FabricReturn[]>([])
+  // Manual receive rows — staff picks a product, then color (filtered to that product's variants),
+  // then size (filtered to product+color). SKU auto-matches from the variant.
+  type ManualReceiveRow = { id: string; productId: string; item: string; color: string; size: string; sent: string }
+  const [manualReceive, setManualReceive] = useState<ManualReceiveRow[]>([])
 
   const ONLINE_PLATFORMS = [
     { id: 'shopee_my', label: 'Shopee MY',       color: '#ee4d2d' },
@@ -1177,7 +1181,7 @@ export default function TailorOrderPage() {
                 (v.size  || '').toUpperCase() === size.toUpperCase()
               ) || null
             }
-            const receivable: { key: string; item: string; color: string; size: string; sent: number; avgPerPiece: number; variantSku: string|null; variantBarcode: string|null }[] = []
+            const receivable: { key: string; item: string; color: string; size: string; sent: number; avgPerPiece: number; variantSku: string|null; variantBarcode: string|null; manualId?: string }[] = []
             for (const row of cuttingSheet.rows) {
               const item = (row.kod || '').trim()
               const color = (row.color_name || '').trim() || '—'
@@ -1195,6 +1199,30 @@ export default function TailorOrderPage() {
                     variantBarcode: v?.barcode || null,
                   })
                 }
+              })
+            }
+            // Append manual rows (added via "+ Add Row" button) — editable by staff.
+            // Each manual row has its own productId (chosen via Item dropdown), so resolve
+            // variant SKU against THAT product's variants (not the top-level selectedProd).
+            for (const m of manualReceive) {
+              const sent = parseFloat(m.sent) || 0
+              const color = m.color || '—'
+              const size  = m.size  || '—'
+              const rowProduct = m.productId ? finishedProducts.find(p => String(p.id) === m.productId) : null
+              const item = rowProduct?.name || m.item || '—'
+              let v: any = null
+              if (rowProduct && m.color && m.size) {
+                v = (rowProduct.variants ?? []).find((x: any) =>
+                  (x.color || '').toLowerCase() === m.color.toLowerCase() &&
+                  (x.size  || '').toUpperCase() === m.size.toUpperCase()
+                ) || null
+              }
+              receivable.push({
+                key: `manual:${m.id}`,
+                item, color, size, sent, avgPerPiece: 0,
+                variantSku: v?.sku || null,
+                variantBarcode: v?.barcode || null,
+                manualId: m.id,
               })
             }
             // Barcode scan handler — match scan against variant SKU or barcode
@@ -1241,55 +1269,44 @@ export default function TailorOrderPage() {
                     <span className="text-red-600">· Rejected: <b>{totalRejectedAll}</b></span>
                     <span className="text-amber-600">· @Tailor: <b>{totalPendingPcs}</b> pcs <span className="text-[10px] text-amber-500">({totalPendingMeter.toFixed(2)}m)</span></span>
                     {allSettled && <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">ALL SETTLED</span>}
+                    <button
+                      onClick={() => setManualReceive(p => [...p, {
+                        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                        productId: receiveProductId,                        // default to currently picked top-level product
+                        item: selectedProd ? selectedProd.name : '',
+                        color: '',
+                        size: '',
+                        sent: '',
+                      }])}
+                      className="ml-1 flex items-center gap-1 px-2 py-1 bg-teal-600 text-white text-[10px] font-bold rounded hover:bg-teal-700">
+                      <Plus className="w-3 h-3"/> Add Row
+                    </button>
                   </div>
                 </div>
                 <div className="px-4 py-3">
-                  {/* ── Finished Product picker + barcode scan ── */}
-                  <div className="mb-3 bg-blue-50/50 border border-blue-200 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                    <div className="md:col-span-5">
-                      <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-1">🎽 Finished Product (what tailor is making)</label>
-                      <div className="flex items-center gap-1.5">
-                        <select value={receiveProductId} onChange={e => setReceiveProductId(e.target.value)}
-                          className="flex-1 px-2.5 py-1.5 text-sm border border-blue-300 rounded bg-white focus:outline-none focus:border-blue-500">
-                          <option value="">— Select finished product —</option>
-                          {finishedProducts
-                            .filter(p => (p.variants?.length ?? 0) > 0)
-                            .map(p => <option key={p.id} value={p.id}>{p.sku} — {p.name} ({p.variants.length} variants)</option>)}
-                        </select>
-                        <a href="/inventory/products" target="_blank" rel="noopener" title="Create / edit products in new tab"
-                          className="px-2 py-1.5 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 text-blue-700 font-bold">+</a>
+                  {/* ── Full-width Barcode / SKU Scanner ── */}
+                  <div className="mb-3 bg-blue-50/50 border border-blue-200 rounded-lg p-3">
+                    <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-1">📷 Barcode / SKU Scan</label>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={scanInput}
+                      onChange={e => setScanInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleScan(scanInput) } }}
+                      placeholder="Scan variant barcode or type SKU + Enter (e.g. TEST-JK-BLA-M)"
+                      className="w-full px-3 py-2 text-sm border-2 border-blue-400 rounded font-mono focus:outline-none focus:border-blue-600"/>
+                    {scanFeedback && (
+                      <div className={`text-[11px] mt-1 font-semibold ${scanFeedback.kind === 'ok' ? 'text-emerald-700' : 'text-red-600'}`}>
+                        {scanFeedback.msg}
                       </div>
-                      {selectedProd && (
-                        <div className="text-[10px] text-slate-500 mt-1">
-                          Variants: <b className="text-slate-700">{(selectedProd.variants ?? []).length}</b>
-                          {' '}· Matched in cutting sheet: <b className="text-emerald-700">{receivable.filter(r => r.variantSku).length}/{receivable.length}</b>
-                        </div>
-                      )}
-                    </div>
-                    <div className="md:col-span-7">
-                      <label className="block text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-1">📷 Barcode / SKU Scan</label>
-                      <input
-                        autoFocus
-                        type="text"
-                        value={scanInput}
-                        onChange={e => setScanInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleScan(scanInput) } }}
-                        placeholder={receiveProductId ? 'Scan variant barcode or type SKU + Enter (e.g. KBK-0001-BLUE-M)' : 'Select a Finished Product first to enable scan…'}
-                        disabled={!receiveProductId}
-                        className="w-full px-3 py-2 text-sm border-2 border-blue-400 rounded font-mono focus:outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:cursor-not-allowed"/>
-                      {scanFeedback && (
-                        <div className={`text-[11px] mt-1 font-semibold ${scanFeedback.kind === 'ok' ? 'text-emerald-700' : 'text-red-600'}`}>
-                          {scanFeedback.msg}
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    <p className="text-[10px] text-slate-500 mt-1 italic">
+                      Tip: use <b className="text-teal-700">+ Add Row</b> below to add products manually with cascading dropdowns, then scan to mark received.
+                    </p>
                   </div>
 
-                  {receivable.length === 0 ? (
-                    <div className="text-center text-slate-400 italic text-sm py-6">
-                      No items in cutting sheet yet — fill Step 2 (Cutting Table) sizes/qty first.
-                    </div>
-                  ) : (
+                  {/* Always render the table — manual "+ Add Row" works even with empty cutting sheet */}
+                  {true && (
                     <table className="w-full text-xs">
                       <thead className="bg-slate-100">
                         <tr>
@@ -1311,19 +1328,103 @@ export default function TailorOrderPage() {
                           const rej  = rejectedByVariant[r.key] || 0
                           const pending = Math.max(0, r.sent - recv - rej)
                           const pendingM = pending * r.avgPerPiece
-                          const isDone = pending === 0
+                          const isDone = r.sent > 0 && pending === 0
+                          const isManual = !!r.manualId
+                          const updateManual = (patch: Partial<ManualReceiveRow>) =>
+                            setManualReceive(p => p.map(m => m.id === r.manualId ? { ...m, ...patch } : m))
                           return (
-                            <tr key={r.key} className={`border-t border-slate-100 ${isDone ? 'bg-emerald-50/40' : ''}`}>
+                            <tr key={r.key} className={`border-t border-slate-100 ${isManual ? 'bg-teal-50/30' : isDone ? 'bg-emerald-50/40' : ''}`}>
                               <td className="px-2 py-1.5 text-center text-slate-400">{i + 1}</td>
-                              <td className="px-3 py-1.5 font-semibold uppercase">{r.item}</td>
+                              {/* Item — Product picker for manual rows */}
+                              <td className="px-2 py-1">
+                                {isManual ? (() => {
+                                  const rowMan = manualReceive.find(m => m.id === r.manualId)
+                                  return (
+                                    <select
+                                      value={rowMan?.productId || ''}
+                                      onChange={e => updateManual({ productId: e.target.value, color: '', size: '' })}
+                                      className="w-full px-2 py-1 text-xs border border-teal-200 rounded bg-white uppercase font-semibold focus:outline-none focus:border-teal-500">
+                                      <option value="">— Select product —</option>
+                                      {finishedProducts
+                                        .filter(p => (p.variants?.length ?? 0) > 0)
+                                        .map(p => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}
+                                    </select>
+                                  )
+                                })() : (
+                                  <span className="font-semibold uppercase">{r.item}</span>
+                                )}
+                              </td>
                               <td className="px-3 py-1.5">
                                 {r.variantSku
                                   ? <span className="font-mono text-blue-700 font-bold">{r.variantSku}</span>
-                                  : <span className="text-slate-400 italic text-[10px]">{receiveProductId ? 'no variant match' : '— pick product —'}</span>}
+                                  : <span className="text-slate-400 italic text-[10px]">
+                                      {isManual
+                                        ? (manualReceive.find(m => m.id === r.manualId)?.productId
+                                            ? 'pick color + size →'
+                                            : '— pick product —')
+                                        : '—'}
+                                    </span>}
                               </td>
-                              <td className="px-3 py-1.5 uppercase text-slate-700">{r.color}</td>
-                              <td className="px-3 py-1.5 text-center font-mono">{r.size}</td>
-                              <td className="px-3 py-1.5 text-right font-mono font-semibold">{r.sent}</td>
+                              {/* Color — Dropdown from picked product's variants */}
+                              <td className="px-2 py-1">
+                                {isManual ? (() => {
+                                  const rowMan = manualReceive.find(m => m.id === r.manualId)
+                                  const rowProduct = rowMan?.productId ? finishedProducts.find(p => String(p.id) === rowMan.productId) : null
+                                  const availableColors = rowProduct
+                                    ? Array.from(new Set((rowProduct.variants ?? []).map((v: any) => v.color).filter(Boolean)))
+                                    : []
+                                  return (
+                                    <select
+                                      value={rowMan?.color || ''}
+                                      onChange={e => updateManual({ color: e.target.value, size: '' })}
+                                      disabled={!rowProduct}
+                                      className="w-full px-2 py-1 text-xs border border-teal-200 rounded bg-white uppercase disabled:bg-slate-100 focus:outline-none focus:border-teal-500">
+                                      <option value="">— Color —</option>
+                                      {availableColors.map((c: any) => <option key={String(c)} value={String(c)}>{String(c)}</option>)}
+                                    </select>
+                                  )
+                                })() : (
+                                  <span className="uppercase text-slate-700">{r.color}</span>
+                                )}
+                              </td>
+                              {/* Size — Dropdown from picked product+color's variants */}
+                              <td className="px-2 py-1">
+                                {isManual ? (() => {
+                                  const rowMan = manualReceive.find(m => m.id === r.manualId)
+                                  const rowProduct = rowMan?.productId ? finishedProducts.find(p => String(p.id) === rowMan.productId) : null
+                                  const availableSizes = rowProduct && rowMan?.color
+                                    ? Array.from(new Set(
+                                        (rowProduct.variants ?? [])
+                                          .filter((v: any) => (v.color || '').toLowerCase() === rowMan.color.toLowerCase())
+                                          .map((v: any) => v.size).filter(Boolean)
+                                      ))
+                                    : []
+                                  return (
+                                    <select
+                                      value={rowMan?.size || ''}
+                                      onChange={e => updateManual({ size: e.target.value })}
+                                      disabled={!rowProduct || !rowMan?.color}
+                                      className="w-full px-2 py-1 text-xs border border-teal-200 rounded bg-white text-center font-mono disabled:bg-slate-100 focus:outline-none focus:border-teal-500">
+                                      <option value="">— Size —</option>
+                                      {availableSizes.map((s: any) => <option key={String(s)} value={String(s)}>{String(s)}</option>)}
+                                    </select>
+                                  )
+                                })() : (
+                                  <span className="text-center font-mono">{r.size}</span>
+                                )}
+                              </td>
+                              {/* Sent qty — editable for manual rows */}
+                              <td className="px-2 py-1">
+                                {isManual ? (
+                                  <input type="number" min="0" step="1"
+                                    value={manualReceive.find(m => m.id === r.manualId)?.sent ?? ''}
+                                    onChange={e => updateManual({ sent: e.target.value })}
+                                    placeholder="0"
+                                    className="w-full px-2 py-1 text-xs border border-teal-200 rounded text-right font-mono focus:outline-none focus:border-teal-500"/>
+                                ) : (
+                                  <span className="text-right font-mono font-semibold">{r.sent}</span>
+                                )}
+                              </td>
                               <td className="px-2 py-1.5">
                                 <input type="number" min="0" max={r.sent - rej} step="1" value={recv || ''}
                                   onChange={e => {
@@ -1343,7 +1444,21 @@ export default function TailorOrderPage() {
                                   className="w-full px-2 py-1 text-xs border border-slate-200 rounded text-right font-mono focus:outline-none focus:border-red-500"/>
                               </td>
                               <td className={`px-3 py-1.5 text-right font-mono font-bold ${pending > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{pending}</td>
-                              <td className={`px-3 py-1.5 text-right font-mono ${pending > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{pendingM ? pendingM.toFixed(2) : '—'}</td>
+                              <td className={`px-2 py-1.5 text-right font-mono ${pending > 0 ? 'text-amber-600' : 'text-slate-400'} relative`}>
+                                {pendingM ? pendingM.toFixed(2) : '—'}
+                                {isManual && (
+                                  <button
+                                    onClick={() => {
+                                      setManualReceive(p => p.filter(m => m.id !== r.manualId))
+                                      setReceivedByVariant(p => { const c = { ...p }; delete c[r.key]; return c })
+                                      setRejectedByVariant(p => { const c = { ...p }; delete c[r.key]; return c })
+                                    }}
+                                    className="ml-1 text-slate-300 hover:text-red-600"
+                                    title="Remove this row">
+                                    <Trash2 className="w-3 h-3 inline"/>
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           )
                         })}
@@ -1359,6 +1474,31 @@ export default function TailorOrderPage() {
                         </tr>
                       </tfoot>
                     </table>
+                  )}
+
+                  {/* Datalists for manual-row color/size autocomplete */}
+                  <datalist id="manual-receive-sizes">
+                    <option value="XS"/><option value="S"/><option value="M"/><option value="L"/>
+                    <option value="XL"/><option value="2XL"/><option value="3XL"/><option value="XXL"/>
+                  </datalist>
+                  <datalist id="manual-receive-colors">
+                    {selectedProd && Array.from(new Set((selectedProd.variants ?? []).map((v: any) => v.color).filter(Boolean))).map((c: any) => (
+                      <option key={String(c)} value={String(c)}/>
+                    ))}
+                  </datalist>
+
+                  {/* "Manual Add Row" hint when no cutting sheet but Add Row used */}
+                  {receivable.length > 0 && manualReceive.length > 0 && (
+                    <p className="mt-2 text-[10px] text-slate-400 italic">
+                      Teal rows = manual entries · click 🗑 in Pending column to remove
+                    </p>
+                  )}
+
+                  {/* Empty state when no auto rows + show Add Row prompt */}
+                  {receivable.length === 0 && (
+                    <div className="text-center text-slate-400 italic text-sm py-6">
+                      No items in cutting sheet yet — click <b className="text-teal-700">"+ Add Row"</b> above to manually add a product, or fill Step 2 (Cutting Table) first.
+                    </div>
                   )}
 
                   {/* ── Return Unused Fabric (when tailor doesn't finish all pieces) ── */}
