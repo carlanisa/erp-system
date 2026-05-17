@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { Sortable } from '@/components/ui/Sortable'
 import {
   ArrowLeft, Monitor, Tablet, Smartphone, RefreshCw, Save, RotateCcw,
-  ChevronDown, ChevronUp, Eye, EyeOff, Plus, Trash2, X,
+  ChevronDown, ChevronUp, ArrowUp, ArrowDown, Eye, EyeOff, Plus, Trash2, X,
   Palette, Layers, Megaphone, Mail, Image as ImageIcon, LayoutGrid, ShoppingBag,
   FileText, Quote, Instagram, Sparkles, ExternalLink, Type, Video, Timer,
 } from 'lucide-react'
@@ -163,6 +163,15 @@ export default function ThemeEditorPage() {
     await api.delete(`/admin/storefront/sections/${id}`)
     setSections(sections.filter((s) => s.id !== id))
     setOrigSections(origSections.filter((s) => s.id !== id))
+  }
+  function moveSection(id: number, dir: -1 | 1) {
+    const idx = sections.findIndex((s) => s.id === id)
+    const j = idx + dir
+    if (j < 0 || j >= sections.length) return
+    const next = [...sections]
+    const [it] = next.splice(idx, 1)
+    next.splice(j, 0, it)
+    setSections(next.map((s, i) => ({ ...s, position: i })))
   }
   async function addBar() {
     const { data } = await api.post('/admin/storefront/announcement-bars', {
@@ -322,15 +331,22 @@ export default function ThemeEditorPage() {
                 onChange={(next) => setSections(next.map((s, i) => ({ ...s, position: i })))}
                 vertical
               >
-                {(s) => <SectionRow
-                  s={s as Section}
-                  expanded={expandedSection === s.id}
-                  onToggleExpand={() => setExpandedSection(expandedSection === s.id ? null : s.id)}
-                  onToggleEnabled={() => updateSection(s.id, { enabled: !s.enabled })}
-                  onDelete={() => deleteSection(s.id)}
-                  onLabel={(l) => updateSection(s.id, { label: l })}
-                  onConfig={(c) => updateSectionConfig(s.id, c)}
-                />}
+                {(s) => {
+                  const idx = sections.findIndex((x) => x.id === s.id)
+                  return <SectionRow
+                    s={s as Section}
+                    isFirst={idx === 0}
+                    isLast={idx === sections.length - 1}
+                    expanded={expandedSection === s.id}
+                    onToggleExpand={() => setExpandedSection(expandedSection === s.id ? null : s.id)}
+                    onToggleEnabled={() => updateSection(s.id, { enabled: !s.enabled })}
+                    onDelete={() => deleteSection(s.id)}
+                    onMoveUp={() => moveSection(s.id, -1)}
+                    onMoveDown={() => moveSection(s.id, 1)}
+                    onLabel={(l) => updateSection(s.id, { label: l })}
+                    onConfig={(c) => updateSectionConfig(s.id, c)}
+                  />
+                }}
               </Sortable>
             </div>
           </div>
@@ -353,21 +369,31 @@ export default function ThemeEditorPage() {
   )
 }
 
-function SectionRow({ s, expanded, onToggleExpand, onToggleEnabled, onDelete, onLabel, onConfig }: any) {
+function SectionRow({ s, isFirst, isLast, expanded, onToggleExpand, onToggleEnabled, onDelete, onMoveUp, onMoveDown, onLabel, onConfig }: any) {
   const def = BLOCK_BY_CODE[s.type]
   const Icon = def?.icon ?? FileText
   return (
     <div className={`mb-1 rounded-md border ${expanded ? 'border-indigo-300 bg-indigo-50/40' : 'border-slate-200 bg-white'} ${s.enabled ? '' : 'opacity-60'}`}>
-      <div className="flex items-center gap-1 py-1 pr-1">
+      <div className="flex items-center gap-0.5 py-1 pr-1">
         <button type="button" onClick={onToggleExpand}
           className="flex flex-1 items-center gap-2 px-2 py-1.5 text-left">
           <Icon className="h-4 w-4 flex-none text-slate-500" />
           <span className="truncate text-sm font-medium">{s.label || def?.name || s.type}</span>
         </button>
-        <button onClick={onToggleEnabled} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Toggle visibility">
+        <button onClick={onMoveUp} disabled={isFirst}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent"
+          aria-label="Move up" title="Move up">
+          <ArrowUp className="h-4 w-4" />
+        </button>
+        <button onClick={onMoveDown} disabled={isLast}
+          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent"
+          aria-label="Move down" title="Move down">
+          <ArrowDown className="h-4 w-4" />
+        </button>
+        <button onClick={onToggleEnabled} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Toggle visibility" title={s.enabled ? 'Hide' : 'Show'}>
           {s.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
-        <button onClick={onDelete} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-500" aria-label="Delete">
+        <button onClick={onDelete} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-500" aria-label="Delete" title="Delete">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
