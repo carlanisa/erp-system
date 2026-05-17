@@ -109,7 +109,7 @@ export default function TailorOrderPage() {
     unit_cost:       string   // RM per unit (e.g. RM 0.50 per label)
     // accessory_length
     length_per_use:  string   // e.g. 4.5
-    length_unit:     'inches' | 'cm' | 'meters'
+    length_unit:     'inches' | 'cm' | 'meters' | 'yard' | 'pcs'
     uses_per_piece:  string   // e.g. 2
     cost_per_meter:  string   // RM per meter
   }
@@ -118,9 +118,14 @@ export default function TailorOrderPage() {
     qty_per_piece: '1', unit_cost: '',
     length_per_use: '', length_unit: 'inches', uses_per_piece: '1', cost_per_meter: '',
   })
-  // Convert any length to meters (39.37" = 1m, 100cm = 1m)
-  const toMeters = (n: number, u: 'inches' | 'cm' | 'meters'): number =>
-    u === 'inches' ? n / 39.3701 : u === 'cm' ? n / 100 : n
+  // Convert any length to meters (39.37" = 1m, 100cm = 1m, 1 yard = 0.9144m)
+  // For non-length units ('pcs') we treat 1 unit as 1 (no conversion to meters needed for cost).
+  const toMeters = (n: number, u: 'inches' | 'cm' | 'meters' | 'yard' | 'pcs'): number =>
+    u === 'inches' ? n / 39.3701 :
+    u === 'cm'     ? n / 100 :
+    u === 'yard'   ? n * 0.9144 :
+    u === 'pcs'    ? n :                  // pcs: no conversion (cost_per_meter acts as cost_per_piece)
+    n                                       // meters: no conversion
   // Computed cost-per-finished-piece for a single BOM row
   const lineCostPerPiece = (b: BomEntry): number => {
     if (b.type === 'accessory_piece') {
@@ -158,6 +163,10 @@ export default function TailorOrderPage() {
   const [scanFeedback, setScanFeedback]           = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   type FabricReturn = { item_code: string; name: string; color: string; size: string; qty: string; uom: string }
   const [returnedFabric, setReturnedFabric]       = useState<FabricReturn[]>([])
+  // Manual receive rows — staff picks a product, then color (filtered to that product's variants),
+  // then size (filtered to product+color). SKU auto-matches from the variant.
+  type ManualReceiveRow = { id: string; productId: string; item: string; color: string; size: string; sent: string }
+  const [manualReceive, setManualReceive]         = useState<ManualReceiveRow[]>([])
 
   const ONLINE_PLATFORMS = [
     { id: 'shopee_my', label: 'Shopee MY',       color: '#ee4d2d' },
@@ -175,7 +184,7 @@ export default function TailorOrderPage() {
     { n: 2 as const, label: 'Cutting Table',           icon: Scissors },
     { n: 3 as const, label: 'Bill of Material',        icon: BookOpen },
     { n: 4 as const, label: 'Product Received',        icon: Package },
-    { n: 5 as const, label: 'Generate Invoice',        icon: Banknote },
+    { n: 5 as const, label: 'Tailor Invoice',          icon: Banknote },
   ]
 
   const [mode, setMode] = useState<'list'|'edit'>('list')
@@ -999,6 +1008,7 @@ export default function TailorOrderPage() {
                         <th className="text-right px-2 py-2 text-[10px] uppercase text-slate-600 w-16">× Uses</th>
                         <th className="text-right px-2 py-2 text-[10px] uppercase text-slate-600 w-24">RM per<br/>unit / m</th>
                         <th className="text-right px-2 py-2 text-[10px] uppercase text-slate-600 w-24">RM /<br/>Piece</th>
+                        <th className="text-right px-2 py-2 text-[10px] uppercase text-teal-700 w-28" title="Auto: total qty needed for full order (qty × order_qty) — editable">Total for<br/>Order ({orderQty || 0} pcs)</th>
                         <th className="w-10"/>
                       </tr>
                     </thead>
@@ -1028,7 +1038,7 @@ export default function TailorOrderPage() {
                                 placeholder={isService ? 'STITCHING' : isPiece ? 'CARLANISA LABEL' : isLength ? 'HANGING TALI' : 'PACKAGING'}
                                 className="w-full px-2 py-1 text-sm border border-slate-200 rounded focus:outline-none focus:border-[var(--accent)] uppercase font-semibold"/>
                             </td>
-                            {/* Length / Qty */}
+                            {/* Length / Qty — editable for all types (service/overhead use it for billing qty) */}
                             <td className="px-2 py-1.5">
                               {isPiece && (
                                 <input type="number" step="0.01" value={b.qty_per_piece}
@@ -1042,30 +1052,38 @@ export default function TailorOrderPage() {
                                   placeholder="4.5"
                                   className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/>
                               )}
-                              {(isService || isOverhead) && <span className="block text-center text-slate-300">—</span>}
-                            </td>
-                            {/* Unit */}
-                            <td className="px-1 py-1.5">
-                              {isPiece && <span className="block text-center text-[11px] text-slate-500 font-mono">pcs</span>}
-                              {isLength && (
-                                <select value={b.length_unit} onChange={e => setEntry(i, { length_unit: e.target.value as any })}
-                                  className="w-full px-1 py-1 text-[11px] border border-slate-200 rounded">
-                                  <option value="inches">inches</option>
-                                  <option value="cm">cm</option>
-                                  <option value="meters">meters</option>
-                                </select>
+                              {(isService || isOverhead) && (
+                                <input type="number" step="0.01" value={b.qty_per_piece}
+                                  onChange={e => setEntry(i, { qty_per_piece: e.target.value })}
+                                  placeholder="1"
+                                  className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/>
                               )}
-                              {(isService || isOverhead) && <span className="block text-center text-slate-300">—</span>}
                             </td>
-                            {/* × Uses (loops per piece) */}
+                            {/* Unit — unified dropdown for all row types (pcs / inches / cm / meter / yard) */}
+                            <td className="px-1 py-1.5">
+                              <select value={b.length_unit || (isLength ? 'inches' : 'pcs')}
+                                onChange={e => setEntry(i, { length_unit: e.target.value as any })}
+                                className="w-full px-1 py-1 text-[11px] border border-slate-200 rounded bg-white">
+                                <option value="pcs">pcs</option>
+                                <option value="inches">inches</option>
+                                <option value="cm">cm</option>
+                                <option value="meters">meter</option>
+                                <option value="yard">yard</option>
+                              </select>
+                            </td>
+                            {/* × Uses — editable for all types */}
                             <td className="px-2 py-1.5">
-                              {isLength && (
+                              {isLength ? (
                                 <input type="number" step="1" value={b.uses_per_piece}
                                   onChange={e => setEntry(i, { uses_per_piece: e.target.value })}
                                   placeholder="2"
                                   className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/>
+                              ) : (
+                                <input type="number" step="1" value={b.uses_per_piece}
+                                  onChange={e => setEntry(i, { uses_per_piece: e.target.value })}
+                                  placeholder="1"
+                                  className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/>
                               )}
-                              {!isLength && <span className="block text-center text-slate-300">—</span>}
                             </td>
                             {/* RM per unit / per meter / per piece */}
                             <td className="px-2 py-1.5">
@@ -1096,6 +1114,35 @@ export default function TailorOrderPage() {
                                 return <span className="block text-[9px] text-slate-400 font-normal">= {totalM.toFixed(3)}m / pc</span>
                               })()}
                             </td>
+                            {/* Auto-calculated total for full order — editable */}
+                            <td className="px-2 py-1.5">
+                              {(() => {
+                                const oqty = parseFloat(orderQty) || 0
+                                let perPiece = 0
+                                let unit = b.length_unit || 'pcs'
+                                if (isPiece || isService || isOverhead) {
+                                  perPiece = parseFloat(b.qty_per_piece) || (isService || isOverhead ? 1 : 0)
+                                  if (!unit || unit === 'inches') unit = 'pcs'
+                                } else if (isLength) {
+                                  const len  = parseFloat(b.length_per_use) || 0
+                                  const uses = parseFloat(b.uses_per_piece) || 1
+                                  perPiece = len * uses
+                                }
+                                const autoTotal = perPiece * oqty
+                                const override  = (b as any).total_override
+                                const shownTotal = override !== undefined && override !== '' ? override : autoTotal.toFixed(2)
+                                return (
+                                  <div className="flex items-center gap-1">
+                                    <input type="number" step="0.01"
+                                      value={shownTotal}
+                                      onChange={e => setEntry(i, { total_override: e.target.value } as any)}
+                                      title={`Auto = ${perPiece} × ${oqty} pcs = ${autoTotal.toFixed(2)} ${unit}`}
+                                      className="w-full px-1.5 py-1 text-xs border border-teal-200 rounded text-right font-mono font-bold text-teal-700 focus:outline-none focus:border-teal-500"/>
+                                    <span className="text-[9px] text-slate-500 font-mono">{unit}</span>
+                                  </div>
+                                )
+                              })()}
+                            </td>
                             <td className="px-2 py-1.5 text-center">
                               <button onClick={() => setBomEntries(p => p.filter((_, idx) => idx !== i))}
                                 className="text-slate-400 hover:text-red-600 p-1">
@@ -1106,7 +1153,7 @@ export default function TailorOrderPage() {
                         )
                       })}
                       {bomEntries.length === 0 && (
-                        <tr><td colSpan={9} className="py-8 text-center text-slate-400 italic text-sm">No items yet — click a button above to add a row.</td></tr>
+                        <tr><td colSpan={10} className="py-8 text-center text-slate-400 italic text-sm">No items yet — click a button above to add a row.</td></tr>
                       )}
                     </tbody>
                     {bomEntries.length > 0 && (
@@ -1120,6 +1167,7 @@ export default function TailorOrderPage() {
                             Overhead: <span className="text-amber-700 font-mono">RM {overhead_perPc.toFixed(2)}</span>
                           </td>
                           <td className="px-2 py-2 text-right font-mono font-bold text-[var(--accent)] text-base">RM {grandPerPc.toFixed(2)}</td>
+                          <td className="px-2 py-2 text-[10px] text-center text-slate-500 font-mono">for {parseFloat(orderQty) || 0} pcs</td>
                           <td/>
                         </tr>
                         <tr>
@@ -1664,35 +1712,207 @@ export default function TailorOrderPage() {
             </div>
           )}
 
-          {/* SECTION 4: Bill — Step 5 */}
-          {activeStep === 5 && editing && (
-            <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
-              <div className="px-4 py-2 border-b border-slate-100 bg-emerald-50/40 flex items-center justify-between">
-                <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wide">⑤ Generate Tailor Invoice (Stitching only)</h3>
-              </div>
-              <div className="px-4 py-3">
-                {billed ? (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded p-3">
-                    <div>
-                      <div className="text-xs text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5"/> Bill Generated</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">PI #{billPiId} created for {tailorMap[Number(tailorId)]?.name} (tailor service portion only)</div>
-                    </div>
-                    <a href={`/suppliers/purchase`} className="text-xs px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">Open Suppliers → PI</a>
+          {/* SECTION 4: TAILOR INVOICE — Step 5 (PI/PV-style document) */}
+          {activeStep === 5 && editing && (() => {
+            const tailorInfo: any = tailorMap[Number(tailorId)]   // any cast — Tailor type may not have phone/address
+            const stitchingLines = bomEntries.filter(b => b.type === 'service' && parseFloat(b.cost) > 0)
+            // Per-product breakdown: aggregate received counts per (item|color|size) from receivedByVariant
+            // Combined with stitching costs from BOM
+            const receivedRows: Array<{ item: string; color: string; size: string; qty: number }> = []
+            for (const row of cuttingSheet.rows) {
+              const item = (row.kod || '').trim()
+              const color = (row.color_name || '').trim() || '—'
+              if (!item) continue
+              SIZES.forEach(sk => {
+                const sizeLabel = SIZE_LABELS[sk]
+                const recv = receivedByVariant[`${item}|${color}|${sizeLabel}`] || 0
+                if (recv > 0) receivedRows.push({ item, color, size: sizeLabel, qty: recv })
+              })
+            }
+            for (const m of manualReceive) {
+              const rowProduct = m.productId ? finishedProducts.find(p => String(p.id) === m.productId) : null
+              const item = rowProduct?.name || m.item || '—'
+              const recv = receivedByVariant[`manual:${m.id}`] || 0
+              if (recv > 0) receivedRows.push({ item, color: m.color || '—', size: m.size || '—', qty: recv })
+            }
+            const totalPcsBilled = receivedRows.reduce((s, r) => s + r.qty, 0)
+            const stitchPerPiece = stitchingLines.reduce((s, b) => s + (parseFloat(b.cost) || 0), 0)
+            const dedRm = parseFloat(stitchDeduction) || 0
+            const subtotal = stitchPerPiece * totalPcsBilled
+            const grandTotal = Math.max(0, subtotal - dedRm)
+
+            return (
+              <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
+                <div className="px-4 py-2 border-b border-slate-100 bg-emerald-50/40 flex items-center justify-between flex-wrap gap-2">
+                  <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wide">⑤ Tailor Invoice</h3>
+                  <div className="flex items-center gap-2">
+                    {billed && billPiId && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
+                        ISSUED · PI-{String(billPiId).padStart(5, '0')}
+                      </span>
+                    )}
+                    {!billed && receivedQty > 0 && (
+                      <button onClick={handleGenerateBill}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700">
+                        <Banknote className="w-3.5 h-3.5"/> Generate Tailor Invoice
+                      </button>
+                    )}
                   </div>
-                ) : receivedQty > 0 ? (
-                  <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded p-3">
-                    <div>
-                      <div className="text-xs text-amber-700 font-bold">Ready to Bill</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">Total tailor charges: <b>RM {(breakdown.tailor_service * (totalReceived / Math.max(parseFloat(orderQty),1))).toFixed(2)}</b> for {totalReceived} pcs received. Click "Generate Bill" on top to create the PI.</div>
-                    </div>
-                    <button onClick={handleGenerateBill} className="text-xs px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center gap-1"><Banknote className="w-3.5 h-3.5"/> Generate Bill Now</button>
+                </div>
+
+                {receivedQty === 0 && !billed ? (
+                  <div className="text-xs text-slate-400 italic text-center py-8">
+                    No receipts yet — Tailor Invoice is generated after at least one piece received (Step 4).
                   </div>
                 ) : (
-                  <div className="text-xs text-slate-400 italic text-center py-2">No receipts yet — bill is generated after at least one receipt.</div>
+                  <div className="p-5 grid grid-cols-12 gap-4">
+                    {/* PAY TO + Invoice Meta */}
+                    <div className="col-span-6 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Pay To (Tailor)</div>
+                      <div className="text-base font-bold text-slate-800">{tailorInfo?.name || '—'}</div>
+                      <div className="text-[11px] text-slate-600 mt-0.5">
+                        Code: <span className="font-mono">{tailorInfo?.tailor_code || '—'}</span>
+                        {tailorInfo?.phone && <> · 📞 {tailorInfo.phone}</>}
+                      </div>
+                      {tailorInfo?.address && <div className="text-[11px] text-slate-500 mt-1">{tailorInfo.address}</div>}
+                      {tailorInfo?.payment_terms && (
+                        <div className="text-[11px] text-slate-600 mt-1">
+                          Payment Terms: <b>{tailorInfo.payment_terms}</b>
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-span-6 bg-emerald-50/40 border border-emerald-200 rounded-lg p-3">
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <div className="text-[9px] text-emerald-700 uppercase font-bold">Tailor Invoice No</div>
+                          <div className="font-mono font-bold text-slate-800">
+                            {billPiId ? `PI-${String(billPiId).padStart(5, '0')}` : '(auto on issue)'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-emerald-700 uppercase font-bold">Date</div>
+                          <div className="font-mono text-slate-800">{dateStr}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-emerald-700 uppercase font-bold">Tailor Order Ref</div>
+                          <div className="font-mono text-slate-800">{orderNo || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-emerald-700 uppercase font-bold">Status</div>
+                          <div>
+                            {billed
+                              ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">POSTED</span>
+                              : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">DRAFT</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Line items — products with size + stitching breakdown */}
+                    <div className="col-span-12 border border-slate-200 rounded overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-slate-100">
+                          <tr>
+                            <th className="text-center w-8 px-2 py-1.5 text-[10px] uppercase font-semibold text-slate-600">#</th>
+                            <th className="text-left px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600">Description</th>
+                            <th className="text-left px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600 w-28">Color</th>
+                            <th className="text-center px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600 w-16">Size</th>
+                            <th className="text-right px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600 w-16">Qty</th>
+                            <th className="text-right px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600 w-24">Rate / pc</th>
+                            <th className="text-right px-3 py-1.5 text-[10px] uppercase font-semibold text-slate-600 w-28">Amount (RM)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {receivedRows.length === 0 ? (
+                            <tr><td colSpan={7} className="py-4 text-center text-slate-400 italic text-[11px]">No received pieces yet — fill Step 4 (Product Received) first.</td></tr>
+                          ) : receivedRows.map((r, i) => {
+                            const amount = r.qty * stitchPerPiece
+                            return (
+                              <tr key={i} className="border-t border-slate-100">
+                                <td className="px-2 py-1.5 text-center text-slate-400">{i + 1}</td>
+                                <td className="px-3 py-1.5 font-semibold uppercase">
+                                  {r.item}
+                                  {stitchingLines.length > 0 && (
+                                    <span className="block text-[10px] text-slate-500 font-normal normal-case mt-0.5">
+                                      {stitchingLines.map(s => s.service).join(' + ')}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-1.5 uppercase text-slate-700">{r.color}</td>
+                                <td className="px-3 py-1.5 text-center font-mono">{r.size}</td>
+                                <td className="px-3 py-1.5 text-right font-mono font-semibold">{r.qty}</td>
+                                <td className="px-3 py-1.5 text-right font-mono">{stitchPerPiece.toFixed(2)}</td>
+                                <td className="px-3 py-1.5 text-right font-mono font-semibold">{amount.toFixed(2)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                        <tfoot className="bg-slate-50 border-t-2 border-slate-300">
+                          <tr>
+                            <td colSpan={6} className="px-3 py-1.5 text-right text-[10px] uppercase font-bold text-slate-600">Subtotal:</td>
+                            <td className="px-3 py-1.5 text-right font-mono font-bold text-slate-800">RM {subtotal.toFixed(2)}</td>
+                          </tr>
+                          {dedRm > 0 && (
+                            <tr>
+                              <td colSpan={6} className="px-3 py-1.5 text-right text-[10px] uppercase font-bold text-red-600">Less: Stitching Deduction:</td>
+                              <td className="px-3 py-1.5 text-right font-mono text-red-600">− RM {dedRm.toFixed(2)}</td>
+                            </tr>
+                          )}
+                          <tr className="bg-emerald-50 border-t-2 border-emerald-300">
+                            <td colSpan={6} className="px-3 py-2 text-right text-[11px] uppercase font-bold text-emerald-700">Tailor Invoice Total:</td>
+                            <td className="px-3 py-2 text-right font-mono font-extrabold text-emerald-800 text-sm">RM {grandTotal.toFixed(2)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    {/* Payment Installment section (mirrors PI/PV format) */}
+                    {billed && billPiId && (
+                      <div className="col-span-12 border border-blue-200 bg-blue-50/30 rounded-lg p-3 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="text-[11px] font-bold text-blue-700 uppercase tracking-wide">💰 Payment Installments</h4>
+                            <p className="text-[10px] text-slate-500">Record payments against this Tailor Invoice (PI-{String(billPiId).padStart(5, '0')})</p>
+                          </div>
+                          <a href={`/suppliers/purchase?id=${billPiId}`}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold rounded hover:bg-blue-700">
+                            <ArrowLeft className="w-3 h-3 rotate-180"/> Open in Supplier PI (for full installment edit)
+                          </a>
+                        </div>
+                        <table className="w-full text-xs bg-white border border-blue-200 rounded">
+                          <thead className="bg-blue-100">
+                            <tr>
+                              <th className="text-center px-2 py-1 text-[10px] uppercase text-blue-800 w-12">#</th>
+                              <th className="text-left  px-2 py-1 text-[10px] uppercase text-blue-800 w-28">Date</th>
+                              <th className="text-right px-2 py-1 text-[10px] uppercase text-blue-800 w-28">Amount (RM)</th>
+                              <th className="text-left  px-2 py-1 text-[10px] uppercase text-blue-800 w-32">Method</th>
+                              <th className="text-left  px-2 py-1 text-[10px] uppercase text-blue-800">Reference</th>
+                              <th className="text-center px-2 py-1 text-[10px] uppercase text-blue-800 w-20">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td colSpan={6} className="px-3 py-3 text-center text-[11px] text-slate-400 italic">
+                                Click <b className="text-blue-700">"Open in Supplier PI"</b> to add / edit payment installments against this invoice.
+                              </td>
+                            </tr>
+                          </tbody>
+                          <tfoot className="bg-slate-50">
+                            <tr>
+                              <td colSpan={2} className="px-2 py-1.5 text-right text-[10px] uppercase font-bold text-slate-600">Invoice Total:</td>
+                              <td className="px-2 py-1.5 text-right font-mono font-bold text-slate-800">RM {grandTotal.toFixed(2)}</td>
+                              <td colSpan={2} className="px-2 py-1.5 text-right text-[10px] uppercase font-bold text-amber-700">Outstanding:</td>
+                              <td className="px-2 py-1.5 text-center font-mono font-bold text-amber-700">RM {grandTotal.toFixed(2)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
         </div>
       </div>

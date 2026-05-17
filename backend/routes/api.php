@@ -328,6 +328,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('tailor-orders/{tailorOrder}/generate-bill',         [TailorOrderController::class, 'generateBill']);
         Route::delete('tailor-orders/{tailorOrder}/receipts/{receipt}',  [TailorOrderController::class, 'deleteReceipt']);
 
+        // Tailor Expense Audit Report — for auditors to see all tailor-related expenses
+        Route::get('reports/tailor-expense', [TailorOrderController::class, 'tailorExpenseReport']);
+
         // Stock movements (issue / receipt / adjust / transfer / send_tailor / receive_tailor)
         Route::apiResource('stock-movements', StockMovementController::class)->parameters(['stock-movements' => 'stockMovement']);
         Route::post('stock-movements/{stockMovement}/cancel', [StockMovementController::class, 'cancel']);

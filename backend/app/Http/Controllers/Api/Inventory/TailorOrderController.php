@@ -468,6 +468,93 @@ class TailorOrderController extends Controller
         return (float) $order->expected_cost / $orderQty;
     }
 
+    /**
+     * Tailor Expense Audit Report — aggregated tailor invoices grouped by tailor
+     * for auditor visibility. Filterable by date range.
+     *
+     * Returns:
+     *  {
+     *    data: [{
+     *      tailor_id, tailor_code, tailor_name, supplier_code,
+     *      orders: [{order_no, date, pi_number, pieces, amount, paid, outstanding, status}],
+     *      totals: {orders_count, pieces, amount, paid, outstanding}
+     *    }],
+     *    grand_total: {orders_count, pieces, amount, paid, outstanding},
+     *    date_range: {from, to}
+     *  }
+     */
+    public function tailorExpenseReport(Request $request): JsonResponse
+    {
+        $from = $request->input('from');
+        $to   = $request->input('to');
+
+        $query = TailorOrder::with(['tailor', 'bill.supplier'])
+            ->whereNotNull('bill_pi_id');   // Only billed orders count as expenses
+
+        if ($from) $query->where('date', '>=', $from);
+        if ($to)   $query->where('date', '<=', $to);
+
+        $orders = $query->orderBy('tailor_id')->orderBy('date')->get();
+
+        // Group by tailor
+        $byTailor = [];
+        $grand = ['orders_count' => 0, 'pieces' => 0, 'amount' => 0, 'paid' => 0, 'outstanding' => 0];
+
+        foreach ($orders as $order) {
+            $tailorId = $order->tailor_id;
+            $pi       = $order->bill;
+            if (!$pi) continue;
+
+            if (!isset($byTailor[$tailorId])) {
+                $byTailor[$tailorId] = [
+                    'tailor_id'     => $tailorId,
+                    'tailor_code'   => $order->tailor?->tailor_code,
+                    'tailor_name'   => $order->tailor?->name,
+                    'supplier_code' => $pi->supplier?->supplier_code,
+                    'orders'        => [],
+                    'totals'        => ['orders_count' => 0, 'pieces' => 0, 'amount' => 0, 'paid' => 0, 'outstanding' => 0],
+                ];
+            }
+
+            $amount     = (float) $pi->amount;
+            $paid       = (float) $pi->paid_amount;
+            $outstanding = $amount - $paid;
+            $pieces     = (float) $order->received_qty;
+
+            $byTailor[$tailorId]['orders'][] = [
+                'order_no'    => $order->order_no,
+                'date'        => $order->date->toDateString(),
+                'pi_id'       => $pi->id,
+                'pi_number'   => $pi->pi_number,
+                'pi_date'     => $pi->date,
+                'pieces'      => $pieces,
+                'amount'      => $amount,
+                'paid'        => $paid,
+                'outstanding' => $outstanding,
+                'pi_status'   => $pi->status,
+                'description' => $pi->description,
+            ];
+
+            $byTailor[$tailorId]['totals']['orders_count']++;
+            $byTailor[$tailorId]['totals']['pieces']      += $pieces;
+            $byTailor[$tailorId]['totals']['amount']      += $amount;
+            $byTailor[$tailorId]['totals']['paid']        += $paid;
+            $byTailor[$tailorId]['totals']['outstanding'] += $outstanding;
+
+            $grand['orders_count']++;
+            $grand['pieces']      += $pieces;
+            $grand['amount']      += $amount;
+            $grand['paid']        += $paid;
+            $grand['outstanding'] += $outstanding;
+        }
+
+        return $this->success([
+            'data'        => array_values($byTailor),
+            'grand_total' => $grand,
+            'date_range'  => ['from' => $from, 'to' => $to],
+        ]);
+    }
+
     private function nextNumber(): string
     {
         $next = (TailorOrder::max('id') ?? 0) + 1;
