@@ -167,6 +167,9 @@ export default function TailorOrderPage() {
   // then size (filtered to product+color). SKU auto-matches from the variant.
   type ManualReceiveRow = { id: string; productId: string; item: string; color: string; size: string; sent: string }
   const [manualReceive, setManualReceive]         = useState<ManualReceiveRow[]>([])
+  // Step 4 — Top + Bottom image URLs (for two-piece sets like Baju Kurung)
+  const [topImageUrl, setTopImageUrl]             = useState<string>('')
+  const [bottomImageUrl, setBottomImageUrl]       = useState<string>('')
 
   const ONLINE_PLATFORMS = [
     { id: 'shopee_my', label: 'Shopee MY',       color: '#ee4d2d' },
@@ -680,6 +683,11 @@ export default function TailorOrderPage() {
       <div className="fixed inset-0 z-40 flex flex-col bg-slate-100">
         <div className="bg-white border-b border-slate-200 px-5 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button onClick={() => setMode('list')}
+              title="Back to tailor orders list"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-300 hover:border-fuchsia-400 hover:bg-fuchsia-50 text-slate-700 text-xs font-medium rounded">
+              <ArrowLeft className="w-3.5 h-3.5"/> Back
+            </button>
             <div className="w-8 h-8 bg-fuchsia-50 rounded-lg flex items-center justify-center"><Send className="w-4 h-4 text-fuchsia-600"/></div>
             <div>
               <h2 className="text-sm font-bold text-slate-800">{editing ? `Edit ${orderNo}` : 'New Tailor Order'}</h2>
@@ -1348,6 +1356,82 @@ export default function TailorOrderPage() {
                       Tip: use <b className="text-teal-700">+ Add Row</b> below to add products manually with cascading dropdowns, then scan to mark received.
                     </p>
                   </div>
+
+                  {/* ── Top / Bottom Photos (for 2-piece sets like Baju Kurung) ── */}
+                  <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-3">
+                      <label className="block text-[10px] font-bold text-rose-700 uppercase tracking-wide mb-1">👚 TOP — Image URL</label>
+                      <input value={topImageUrl} onChange={e => setTopImageUrl(e.target.value)}
+                        placeholder="https://… (paste image URL)"
+                        className="w-full px-2.5 py-1.5 text-xs border border-rose-300 rounded font-mono focus:outline-none focus:border-rose-500"/>
+                      {topImageUrl && (
+                        <img src={topImageUrl} alt="Top" className="mt-2 h-24 object-contain rounded border border-rose-200" onError={e => (e.currentTarget.style.display = 'none')}/>
+                      )}
+                    </div>
+                    <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-3">
+                      <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">👖 BOTTOM — Image URL</label>
+                      <input value={bottomImageUrl} onChange={e => setBottomImageUrl(e.target.value)}
+                        placeholder="https://… (paste image URL)"
+                        className="w-full px-2.5 py-1.5 text-xs border border-amber-300 rounded font-mono focus:outline-none focus:border-amber-500"/>
+                      {bottomImageUrl && (
+                        <img src={bottomImageUrl} alt="Bottom" className="mt-2 h-24 object-contain rounded border border-amber-200" onError={e => (e.currentTarget.style.display = 'none')}/>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── BOM AUTO-CALC SUMMARY (for selected order qty) ── */}
+                  {parseFloat(orderQty) > 0 && bomEntries.length > 0 && (() => {
+                    const oqty = parseFloat(orderQty) || 0
+                    const items = bomEntries.filter(b => b.service).map(b => {
+                      let perPc = 0, unit = b.length_unit || 'pcs'
+                      if (b.type === 'accessory_piece') perPc = parseFloat(b.qty_per_piece) || 0
+                      else if (b.type === 'accessory_length') {
+                        const len  = parseFloat(b.length_per_use) || 0
+                        const uses = parseFloat(b.uses_per_piece) || 1
+                        perPc = len * uses
+                      } else {
+                        perPc = parseFloat(b.qty_per_piece) || 1
+                      }
+                      const total = perPc * oqty
+                      const cost  = lineCostPerPiece(b) * oqty
+                      return { label: b.service, type: b.type, perPc, unit, total, cost }
+                    })
+                    const stitchTotal = items.filter(i => i.type === 'service').reduce((s, i) => s + i.cost, 0)
+                    return (
+                      <div className="mb-3 bg-emerald-50/40 border border-emerald-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">📐 Auto BOM Summary — for {oqty} pcs order</h4>
+                          <span className="text-[10px] text-slate-500">(from Step 3 Bill of Material × order qty)</span>
+                        </div>
+                        <table className="w-full text-xs bg-white border border-emerald-100 rounded">
+                          <thead className="bg-emerald-50">
+                            <tr>
+                              <th className="text-left  px-2 py-1 text-[10px] uppercase text-emerald-800">Item</th>
+                              <th className="text-right px-2 py-1 text-[10px] uppercase text-emerald-800 w-20">Per Piece</th>
+                              <th className="text-right px-2 py-1 text-[10px] uppercase text-emerald-800 w-28">Total for Order</th>
+                              <th className="text-right px-2 py-1 text-[10px] uppercase text-emerald-800 w-24">Cost (RM)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((it, i) => (
+                              <tr key={i} className="border-t border-emerald-100">
+                                <td className="px-2 py-1 font-semibold uppercase">{it.label}</td>
+                                <td className="px-2 py-1 text-right font-mono">{it.perPc.toFixed(2)} <span className="text-slate-400">{it.unit}</span></td>
+                                <td className="px-2 py-1 text-right font-mono font-bold text-emerald-700">{it.total.toFixed(2)} <span className="text-slate-400">{it.unit}</span></td>
+                                <td className="px-2 py-1 text-right font-mono">{it.cost.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-emerald-100 border-t-2 border-emerald-300">
+                            <tr>
+                              <td colSpan={3} className="px-2 py-1.5 text-right text-[10px] uppercase font-bold text-emerald-800">Stitching → Tailor Invoice:</td>
+                              <td className="px-2 py-1.5 text-right font-mono font-extrabold text-emerald-800">RM {stitchTotal.toFixed(2)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )
+                  })()}
 
                   {/* Always render the table — manual "+ Add Row" works even with empty cutting sheet */}
                   {true && (

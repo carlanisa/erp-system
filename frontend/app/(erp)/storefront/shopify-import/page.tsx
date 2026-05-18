@@ -128,18 +128,6 @@ export default function ShopifyImportPage() {
 
   function stopImport() { stopRef.current = true; toast('Stopping after current chunk…') }
 
-  async function clearToken() {
-    if (!confirm('Clear the saved access token and switch to public-products mode (no auth)?')) return
-    try {
-      await api.put('/admin/storefront/shopify/settings', {
-        shop_domain: domain.trim(), match_strategy: strategy, only_missing_images: onlyMissing,
-        clear_token: true,
-      })
-      toast.success('Switched to public mode')
-      setToken(''); load()
-    } catch (e: any) { toast.error(e?.response?.data?.message ?? 'Failed') }
-  }
-
   return (
     <div>
       <Link href="/storefront" className="inline-flex items-center gap-1 mb-3 text-sm text-slate-500 hover:text-indigo-600">
@@ -158,24 +146,15 @@ export default function ShopifyImportPage() {
       <Section title="1. Shopify credentials">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field label="Shop domain" placeholder="mystore.myshopify.com" v={domain} on={setDomain} />
-          <Field label="Access token (optional)" placeholder={s?.has_token ? `current: ${s.masked_token}` : 'leave blank for public mode'} v={token} on={setToken} type="password" />
+          <Field label="Admin API access token" placeholder={s?.has_token ? `current: ${s.masked_token}` : 'shpat_…'} v={token} on={setToken} type="password" />
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          <b>Three ways to connect, in order of preference:</b><br />
-          <b>1. Public mode (easiest — no token):</b> leave the token field blank. Works on any public Shopify store via <code>/products.json</code>. Won't work if the store is password-protected.<br />
-          <b>2. Storefront API token</b> (<code>shpss_…</code>): Apps → Develop apps → your app → API credentials → Storefront API access tokens → enable <code>unauthenticated_read_product_listings</code> scope first.<br />
-          <b>3. Admin API token</b> (<code>shpat_…</code>): same Custom App → Configuration → enable <code>read_products</code> → Install → copy from API credentials tab.
+          Create a Custom App in your Shopify admin → Apps & sales channels → Develop apps → Create app → Configure Admin API scopes → enable <code>read_products</code> → Install → copy the access token (starts with <code>shpat_</code>).
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button onClick={saveSettings}
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save credentials</button>
-          {s?.has_token && (
-            <button onClick={clearToken}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              Clear token (use public mode)
-            </button>
-          )}
-          <button onClick={testConnection} disabled={testing || !domain.trim()}
+          <button onClick={testConnection} disabled={testing || !s?.has_token && !token.trim() || !domain.trim()}
             className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50">
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Test connection
           </button>

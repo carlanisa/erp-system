@@ -33,15 +33,11 @@ class ShopifyImportController extends Controller
             'access_token'   => 'nullable|string|max:255',
             'match_strategy' => 'nullable|in:sku,handle,name',
             'only_missing_images' => 'nullable|boolean',
-            'clear_token'    => 'nullable|boolean',
         ]);
         $row = ShopifyImportSetting::current();
-        $clear = (bool) ($data['clear_token'] ?? false);
-        unset($data['clear_token']);
-        if ($clear) {
-            $data['access_token'] = null; // switch to public mode
-        } elseif (array_key_exists('access_token', $data) && trim((string) $data['access_token']) === '') {
-            // Don't overwrite existing token if field left blank.
+        // Don't overwrite the existing token if admin left the field blank (so we
+        // don't accidentally wipe it on settings re-save).
+        if (array_key_exists('access_token', $data) && trim((string) $data['access_token']) === '') {
             unset($data['access_token']);
         }
         $row->update($data);

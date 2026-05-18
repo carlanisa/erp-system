@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Package, Plus, RefreshCw, Pencil, Trash2, X, Loader2, Save,
   Search, ArrowLeft, FilePlus, ChevronUp, ChevronDown, Wand2,
-  Tag, Barcode, Globe, Layers, Sparkles,
+  Tag, Globe, Layers, Sparkles,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -185,11 +185,15 @@ export default function ProductsPage() {
   const router = useRouter()
   const [records, setRecords] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  // Bulk-select: set of product IDs currently checked in the table
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [search, setSearch] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [categories, setCategories] = useState<{ id: number; name: string; is_active: boolean }[]>([])
   const [productTypes, setProductTypes] = useState<{ id: number; key: string; label: string; emoji: string|null; is_active: boolean }[]>([])
   const [collections, setCollections] = useState<{ id: number; name: string }[]>([])
+  const collectionMap = useMemo(() => Object.fromEntries(collections.map(c => [c.id, c.name])), [collections])
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [stats, setStats] = useState<any>(null)
 
@@ -250,6 +254,7 @@ export default function ProductsPage() {
       ])
       setRecords(pr.data.data ?? [])
       setStats(st.data.data ?? null)
+      setSelectedIds(new Set())   // clear bulk-select on reload
     } catch {} finally { setLoading(false) }
   }, [search, typeFilter])
 
@@ -532,6 +537,40 @@ export default function ProductsPage() {
     catch (e: any) { toast.error(e?.response?.data?.message ?? 'Failed') }
   }
 
+  // Bulk delete — archives all selected products
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    if (!confirm(`Archive ${ids.length} selected product${ids.length > 1 ? 's' : ''}? This hides them but preserves variants/history. (Can be restored from the database if needed.)`)) return
+    setBulkDeleting(true)
+    let okCount = 0, failCount = 0
+    for (const id of ids) {
+      try { await api.delete(`/inventory/products/${id}`); okCount++ }
+      catch { failCount++ }
+    }
+    setBulkDeleting(false)
+    setSelectedIds(new Set())
+    if (failCount === 0) toast.success(`Archived ${okCount} product${okCount > 1 ? 's' : ''}`)
+    else toast.error(`Archived ${okCount}, ${failCount} failed`)
+    load()
+  }
+
+  // Select all currently filtered records (or clear)
+  function toggleSelectAll() {
+    if (selectedIds.size === filteredRecords.length && filteredRecords.length > 0) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredRecords.map((p: any) => p.id)))
+    }
+  }
+  function toggleSelectOne(id: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
   // ── FORM VIEW ─────────────────────────────────────────────
   if (mode === 'create' || mode === 'edit') {
     const totalStock = variants.reduce((s, v) => s + (parseFloat(String(v.stock)) || 0), 0)
@@ -793,7 +832,6 @@ export default function ProductsPage() {
                     <th className="text-left px-2 py-1.5 text-[11px] uppercase w-24">Color</th>
                     <th className="text-left px-2 py-1.5 text-[11px] uppercase w-16">Size</th>
                     <th className="text-left px-2 py-1.5 text-[11px] uppercase w-32">SKU</th>
-                    <th className="text-left px-2 py-1.5 text-[11px] uppercase w-28">Barcode</th>
                     <th className="text-right px-2 py-1.5 text-[11px] uppercase w-20">Cost</th>
                     <th className="text-right px-2 py-1.5 text-[11px] uppercase w-20">Sale</th>
                     <th className="text-right px-2 py-1.5 text-[11px] uppercase w-20">Original</th>
@@ -804,14 +842,13 @@ export default function ProductsPage() {
                 </thead>
                 <tbody>
                   {variants.length === 0 ? (
-                    <tr><td colSpan={11} className="py-8 text-center text-slate-400 italic text-[11px]">No variants — use the Bulk Generator above or click "+ Add Variant"</td></tr>
+                    <tr><td colSpan={10} className="py-8 text-center text-slate-400 italic text-[11px]">No variants — use the Bulk Generator above or click "+ Add Variant"</td></tr>
                   ) : variants.map((v, i) => (
                     <tr key={i} className="border-t border-slate-100">
                       <td className="px-2 py-1 text-center text-slate-400">{i+1}</td>
                       <td className="px-1 py-1"><input value={v.color ?? ''} onChange={e=>setVariant(i,{color:e.target.value})} placeholder="Color" className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded"/></td>
                       <td className="px-1 py-1"><input value={v.size ?? ''} onChange={e=>setVariant(i,{size:e.target.value})} placeholder="Size" className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded font-mono uppercase"/></td>
                       <td className="px-1 py-1"><input value={v.sku ?? ''} onChange={e=>setVariant(i,{sku:e.target.value})} placeholder="(auto)" className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded font-mono"/></td>
-                      <td className="px-1 py-1"><input value={v.barcode ?? ''} onChange={e=>setVariant(i,{barcode:e.target.value})} className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded font-mono"/></td>
                       <td className="px-1 py-1"><input type="number" step="0.01" value={String(v.cost_price)} onChange={e=>setVariant(i,{cost_price:e.target.value})} className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/></td>
                       <td className="px-1 py-1"><input type="number" step="0.01" value={String(v.sale_price)} onChange={e=>setVariant(i,{sale_price:e.target.value})} className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/></td>
                       <td className="px-1 py-1"><input type="number" step="0.01" value={String(v.original_price)} onChange={e=>setVariant(i,{original_price:e.target.value})} className="w-full px-1.5 py-1 text-xs border border-slate-200 rounded text-right font-mono"/></td>
@@ -1140,6 +1177,13 @@ export default function ProductsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button onClick={handleBulkDelete} disabled={bulkDeleting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50">
+              {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Trash2 className="w-3.5 h-3.5"/>}
+              Archive {selectedIds.size} Selected
+            </button>
+          )}
           <button onClick={openCreate} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white text-xs font-medium rounded-lg hover:bg-violet-700">
             <Plus className="w-3.5 h-3.5"/> New Product
           </button>
@@ -1186,11 +1230,19 @@ export default function ProductsPage() {
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-slate-700 text-white">
+              <th className="w-8 px-2 py-2 text-center font-medium">
+                <input type="checkbox"
+                  checked={selectedIds.size > 0 && selectedIds.size === filteredRecords.length}
+                  ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredRecords.length }}
+                  onChange={toggleSelectAll}
+                  title="Select all filtered"
+                  className="cursor-pointer"/>
+              </th>
               <th className="w-8 px-2 py-2 text-center font-medium">#</th>
               <th className="text-left px-3 py-2 font-semibold">SKU</th>
               <th className="text-left px-3 py-2 font-semibold">Name</th>
               <th className="text-left px-3 py-2 font-semibold">Type</th>
-              <th className="text-left px-3 py-2 font-semibold">Category</th>
+              <th className="text-left px-3 py-2 font-semibold">Collection</th>
               <th className="text-center px-3 py-2 font-semibold">Variants</th>
               <th className="text-right px-3 py-2 font-semibold">Sale Price</th>
               <th className="text-right px-3 py-2 font-semibold">Original</th>
@@ -1201,7 +1253,8 @@ export default function ProductsPage() {
             </tr>
             {/* ── Per-column filter row ── */}
             <tr className="bg-slate-600 text-white">
-              <th className="px-1 py-1"></th>
+              <th className="px-1 py-1"></th>{/* checkbox col */}
+              <th className="px-1 py-1"></th>{/* # col */}
               <th className="px-1 py-1">
                 <input value={fSku} onChange={e=>setFSku(e.target.value)} placeholder="SKU…"
                   className="w-full px-1.5 py-0.5 text-[11px] bg-slate-500 text-white placeholder-slate-300 border border-slate-400 rounded font-mono"/>
@@ -1274,10 +1327,10 @@ export default function ProductsPage() {
           <tbody>
             {loading ? (Array.from({length:6}).map((_,i)=>(
               <tr key={i} className={i%2===0?'bg-white':'bg-slate-50'}>
-                {Array.from({length:12}).map((_,j)=>(<td key={j} className="px-3 py-2"><div className="h-3 bg-slate-100 rounded animate-pulse"/></td>))}
+                {Array.from({length:13}).map((_,j)=>(<td key={j} className="px-3 py-2"><div className="h-3 bg-slate-100 rounded animate-pulse"/></td>))}
               </tr>
             ))) : filteredRecords.length === 0 ? (
-              <tr><td colSpan={12} className="py-16 text-center text-slate-400">
+              <tr><td colSpan={13} className="py-16 text-center text-slate-400">
                 <Package className="w-10 h-10 mx-auto mb-2 opacity-30"/>
                 {records.length === 0 ? (
                   <>
@@ -1306,7 +1359,13 @@ export default function ProductsPage() {
                 <tr
                   onClick={() => variantCount > 0 && toggle()}
                   onDoubleClick={()=>openEdit(p)}
-                  className={`border-b border-slate-100 transition-colors ${variantCount > 0 ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-violet-50' : (idx%2===0 ? 'bg-white hover:bg-violet-50' : 'bg-slate-50/60 hover:bg-violet-50')}`}>
+                  className={`border-b border-slate-100 transition-colors ${variantCount > 0 ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-violet-50' : (selectedIds.has(p.id) ? 'bg-red-50' : (idx%2===0 ? 'bg-white hover:bg-violet-50' : 'bg-slate-50/60 hover:bg-violet-50'))}`}>
+                  <td className="px-2 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                    <input type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleSelectOne(p.id)}
+                      className="cursor-pointer"/>
+                  </td>
                   <td className="px-2 py-1.5 text-center text-slate-400">
                     {variantCount > 0 ? (
                       <ChevronDown className={`w-3.5 h-3.5 inline-block transition-transform text-slate-500 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -1315,11 +1374,11 @@ export default function ProductsPage() {
                   <td className="px-3 py-1.5 font-mono font-bold text-violet-700">{p.sku}</td>
                   <td className="px-3 py-1.5 font-medium text-slate-800">{p.name}{p.name_bm && <span className="text-slate-400 text-[10px] block">{p.name_bm}</span>}</td>
                   <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${TYPE_BADGE[p.product_type]}`}>{p.product_type.replace('_',' ')}</span></td>
-                  <td className="px-3 py-1.5 text-slate-700">{p.category ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-slate-700">{(p.collection_id && collectionMap[p.collection_id]) || p.category || '—'}</td>
                   <td className="px-3 py-1.5 text-center font-mono">
                     {variantCount > 0
-                      ? <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer ${isExpanded ? 'bg-violet-200 text-violet-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`} onClick={(e) => { e.stopPropagation(); toggle() }}>
-                          {variantCount} variants
+                      ? <span className={`text-xs font-semibold cursor-pointer ${isExpanded ? 'text-violet-700' : 'text-slate-700 hover:text-violet-700'}`} onClick={(e) => { e.stopPropagation(); toggle() }}>
+                          {variantCount} - Variants
                         </span>
                       : '—'}
                   </td>
@@ -1333,11 +1392,18 @@ export default function ProductsPage() {
                   <td className="px-3 py-1.5 text-right font-mono font-semibold">{totalStock}</td>
                   <td className="px-3 py-1.5">
                     <div className="flex flex-wrap gap-0.5">
-                      {(p.channels ?? []).slice(0,4).map(c => {
-                        const ch = CHANNELS.find(x => x.key === c)
-                        return <span key={c} title={ch?.label} className="text-sm">{ch?.emoji ?? '?'}</span>
-                      })}
-                      {(p.channels ?? []).length > 4 && <span className="text-[10px] text-slate-400">+{(p.channels ?? []).length-4}</span>}
+                      {(() => {
+                        // Normalize legacy channel keys (e.g. "web" from old Python import → "website")
+                        const ALIAS: Record<string, string> = { web: 'website' }
+                        const normalized = Array.from(new Set((p.channels ?? []).map(c => ALIAS[c] || c)))
+                        return <>
+                          {normalized.slice(0, 4).map(c => {
+                            const ch = CHANNELS.find(x => x.key === c)
+                            return <span key={c} title={ch?.label || c} className="text-sm">{ch?.emoji || '🔗'}</span>
+                          })}
+                          {normalized.length > 4 && <span className="text-[10px] text-slate-400">+{normalized.length - 4}</span>}
+                        </>
+                      })()}
                     </div>
                   </td>
                   <td className="px-3 py-1.5 text-center">
@@ -1349,7 +1415,7 @@ export default function ProductsPage() {
                 </tr>
                 {isExpanded && variantCount > 0 && (
                   <tr className="bg-violet-50/40">
-                    <td colSpan={12} className="px-6 pb-3 pt-0">
+                    <td colSpan={13} className="px-6 pb-3 pt-0">
                       <div className="bg-white border border-violet-200 rounded-lg overflow-hidden shadow-sm">
                         <table className="w-full text-xs">
                           <thead className="bg-violet-100">

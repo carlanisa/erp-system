@@ -194,11 +194,23 @@ export default function CuttingSheet({
               <Field label="Payment Terms"  value={header.payment_terms || ''}  onChange={v => setHeader({ payment_terms: v })} placeholder="30 days after delivery"/>
               <Field label="Invoice No"     value={header.inv_no || ''}         onChange={v => setHeader({ inv_no: v })} />
               <Field label="Total Rolls"    value={header.total_rolls || ''}    onChange={v => setHeader({ total_rolls: v })} />
-              <Field label="Product Image URL" value={header.product_image_url || ''} onChange={v => setHeader({ product_image_url: v })} />
             </>
           )}
           <Field label="Prepared By" value={header.prepared_by || ''} onChange={v => setHeader({ prepared_by: v })} />
           <Field label="Approved By" value={header.approved_by || ''} onChange={v => setHeader({ approved_by: v })} />
+        </div>
+        {/* Design image URL — always visible, with live preview */}
+        <div className="mt-3 bg-violet-50/40 border border-violet-200 rounded p-2.5">
+          <label className="block text-[10px] font-bold text-violet-700 uppercase tracking-wide mb-1">📷 Design Image — URL (paste link)</label>
+          <input value={header.product_image_url || ''}
+            onChange={e => setHeader({ product_image_url: e.target.value })}
+            placeholder="https://… (paste design photo URL)"
+            className="w-full px-2.5 py-1.5 text-xs border border-violet-300 rounded font-mono focus:outline-none focus:border-violet-500"/>
+          {header.product_image_url && (
+            <img src={header.product_image_url} alt="Design"
+              className="mt-2 h-24 object-contain rounded border border-violet-200"
+              onError={e => (e.currentTarget.style.display = 'none')}/>
+          )}
         </div>
 
         {format === 'production' && (
