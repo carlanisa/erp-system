@@ -26,27 +26,17 @@ class ShopifyImportService
     private const API_VERSION = '2024-10';
     private const PAGE_SIZE   = 50;
 
-    /**
-     * Auto-detect API mode. Three options, picked in this order:
-     *   - public      → no token; uses the open /products.json + /products/{handle}.json
-     *                   endpoints that any Shopify store exposes to the public.
-     *                   Works for ANY publicly browsable Shopify shop.
-     *   - storefront  → token starts with shpss_, uses Storefront GraphQL.
-     *   - admin       → token starts with shpat_/shpca_, uses Admin REST.
-     */
+    /** Auto-detect API mode from token prefix. shpss_ = Storefront GraphQL, shpat_/shpca_ = Admin REST. */
     private function mode(ShopifyImportSetting $s): string
     {
-        $t = $s->access_token ?? '';
-        if (trim($t) === '') return 'public';
-        if (str_starts_with($t, 'shpss_')) return 'storefront';
-        return 'admin';
+        return str_starts_with($s->access_token ?? '', 'shpss_') ? 'storefront' : 'admin';
     }
 
     /** @return array{ok:bool, message?:string, shop?:array, status?:int, hint?:string, url?:string, body?:string, mode?:string} */
     public function testConnection(ShopifyImportSetting $s): array
     {
-        if (!$s->shopHost()) {
-            return ['ok' => false, 'message' => 'Shop domain is required.'];
+        if (!$s->shopHost() || !$s->access_token) {
+            return ['ok' => false, 'message' => 'Shop domain and access token are required.'];
         }
         if (!preg_match('/\.myshopify\.com$/i', $s->shopHost())) {
             return [
@@ -55,11 +45,9 @@ class ShopifyImportService
                 'hint'    => "Use the original .myshopify.com domain (visible top-left of your Shopify admin), not the customer-facing custom domain.",
             ];
         }
-        return match ($this->mode($s)) {
-            'public'     => $this->testPublic($s),
-            'storefront' => $this->testStorefront($s),
-            default      => $this->testAdmin($s),
-        };
+        return $this->mode($s) === 'storefront'
+            ? $this->testStorefront($s)
+            : $this->testAdmin($s);
     }
 
     private function hintForStatus(int $status, string $body): string
@@ -89,16 +77,10 @@ class ShopifyImportService
     /** Returns the total product count on the Shopify shop. */
     public function totalCount(ShopifyImportSetting $s): int
     {
-        $mode = $this->mode($s);
-        if ($mode === 'storefront') {
+        if ($this->mode($s) === 'storefront') {
             // Storefront API doesn't expose a count endpoint; do a tiny GraphQL probe
             $r = $this->graphql($s, 'query { products(first: 1) { edges { node { id } } } }');
             return $r->successful() ? 1 : 0; // we just return a positive signal; real count comes from chunking
-        }
-        if ($mode === 'public') {
-            // /products.json doesn't expose a count either — probe with limit=1.
-            $r = $this->publicGet($s, ['limit' => 1, 'page' => 1]);
-            return $r->successful() ? 1 : 0;
         }
         $resp = $this->req($s, 'products/count.json');
         return $resp->successful() ? (int) ($resp->json('count') ?? 0) : 0;
@@ -192,9 +174,9 @@ class ShopifyImportService
      */
     public function importChunk(ShopifyImportSetting $s, ?string $cursor = null): array
     {
-        $mode = $this->mode($s);
-        if ($mode === 'storefront') return $this->importChunkStorefront($s, $cursor);
-        if ($mode === 'public')     return $this->importChunkPublic($s, $cursor);
+        if ($this->mode($s) === 'storefront') {
+            return $this->importChunkStorefront($s, $cursor);
+        }
         $params = ['limit' => self::PAGE_SIZE, 'fields' => 'id,title,handle,product_type,variants,images,image'];
         if ($cursor) $params['page_info'] = $cursor;
 
@@ -371,127 +353,6 @@ class ShopifyImportService
             'skipped'     => $skipped,
             'errors'      => $errors,
             'next_cursor' => ($pageInfo['hasNextPage'] ?? false) ? ($pageInfo['endCursor'] ?? null) : null,
-            'examples'    => $examples,
-        ];
-    }
-
-    // ─── Public /products.json (no token) ────────────────────────
-    private function publicGet(ShopifyImportSetting $s, array $query): Response
-    {
-        return Http::withHeaders(['Accept' => 'application/json'])
-            ->timeout(30)
-            ->get('https://' . $s->shopHost() . '/products.json', $query);
-    }
-
-    private function testPublic(ShopifyImportSetting $s): array
-    {
-        $url = 'https://' . $s->shopHost() . '/products.json?limit=1';
-        try { $resp = $this->publicGet($s, ['limit' => 1, 'page' => 1]); }
-        catch (\Throwable $e) { return ['ok' => false, 'message' => 'Network: ' . $e->getMessage(), 'url' => $url]; }
-
-        if ($resp->successful() && is_array($resp->json('products'))) {
-            return ['ok' => true, 'mode' => 'public', 'shop' => [
-                'name'   => $s->shopHost(),
-                'plan'   => 'Public products endpoint (no token)',
-                'domain' => $s->shopHost(),
-            ]];
-        }
-        return [
-            'ok' => false, 'mode' => 'public', 'status' => $resp->status(),
-            'message' => 'Public /products.json returned HTTP ' . $resp->status(),
-            'hint'    => $this->hintForPublic($resp->status()),
-            'url'     => $url, 'body' => substr($resp->body(), 0, 400),
-        ];
-    }
-
-    private function hintForPublic(int $status): string
-    {
-        if ($status === 404) return 'Shop not found at this domain. Double-check the .myshopify.com hostname.';
-        if ($status === 401 || $status === 403) {
-            return 'This shop has password-protection or hidden its products from the public products.json. Shopify Admin → Online Store → Preferences → remove the password — or generate a real Admin API token and paste it instead.';
-        }
-        if ($status === 423) return 'Shop is locked by Shopify.';
-        if ($status === 429) return 'Rate-limited. Wait 30 seconds and try again.';
-        if ($status >= 500)  return 'Shopify server error. Try again in a minute.';
-        return 'Unexpected status. Some shops hide /products.json; in that case you need an Admin API token.';
-    }
-
-    /** Public mode chunk — same shape as the others. Cursor encodes the page number ("1","2",…). */
-    private function importChunkPublic(ShopifyImportSetting $s, ?string $cursor = null): array
-    {
-        $page = max(1, (int) ($cursor ?: 1));
-        $resp = $this->publicGet($s, ['page' => $page, 'limit' => 250]);
-
-        if (!$resp->successful()) {
-            return [
-                'processed' => 0, 'matched' => 0, 'updated' => 0, 'downloaded' => 0, 'skipped' => 0,
-                'errors' => ['Shopify public API error: ' . $resp->status() . ' ' . substr($resp->body(), 0, 200)],
-                'next_cursor' => null, 'examples' => [],
-            ];
-        }
-        $rawProducts = $resp->json('products') ?? [];
-
-        // Normalise — public products.json variants have `sku`, images have `src`.
-        // Shape it identically to the Admin REST shape so the loop below stays uniform.
-        $products = array_map(fn($p) => [
-            'title'    => $p['title']  ?? null,
-            'handle'   => $p['handle'] ?? null,
-            'variants' => array_map(fn($v) => ['sku' => $v['sku'] ?? null], $p['variants'] ?? []),
-            'images'   => array_map(fn($i) => ['src' => $i['src'] ?? null, 'alt' => $i['alt'] ?? null], $p['images'] ?? []),
-        ], $rawProducts);
-
-        $matched = $updated = $downloaded = $skipped = 0;
-        $errors  = []; $examples = [];
-
-        foreach ($products as $sp) {
-            $erp = $this->matchErpProduct($sp, $s->match_strategy);
-            $images = $sp['images'] ?? [];
-
-            if (!$erp) {
-                $skipped++;
-                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => null, 'images' => count($images), 'action' => 'no-match'];
-                continue;
-            }
-            $matched++;
-            if ($s->only_missing_images && (!empty($erp->featured_image_url) || !empty($erp->image_path))) {
-                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => count($images), 'action' => 'skipped (has image)'];
-                continue;
-            }
-            if (empty($images)) {
-                if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => 0, 'action' => 'no images in Shopify'];
-                continue;
-            }
-            try {
-                $urls = [];
-                foreach ($images as $img) {
-                    if (empty($img['src'])) continue;
-                    $u = $this->downloadAndStore($img['src'], $erp);
-                    if ($u) { $urls[] = $u; $downloaded++; }
-                }
-                if (!empty($urls)) {
-                    $erp->featured_image_url = $urls[0];
-                    $erp->gallery_urls = array_slice($urls, 1);
-                    $erp->save();
-                    $updated++;
-                    if (count($examples) < 8) $examples[] = ['shopify' => $sp['title'] ?? '?', 'matched' => $erp->id, 'images' => count($urls), 'action' => 'imported'];
-                }
-            } catch (\Throwable $e) {
-                $errors[] = ($sp['title'] ?? '?') . ': ' . $e->getMessage();
-                Log::warning('Shopify public import failed', ['err' => $e->getMessage()]);
-            }
-        }
-
-        // /products.json has no pageInfo. An empty page = end of stream.
-        $nextCursor = count($rawProducts) > 0 ? (string)($page + 1) : null;
-
-        return [
-            'processed'   => count($products),
-            'matched'     => $matched,
-            'updated'     => $updated,
-            'downloaded'  => $downloaded,
-            'skipped'     => $skipped,
-            'errors'      => $errors,
-            'next_cursor' => $nextCursor,
             'examples'    => $examples,
         ];
     }
